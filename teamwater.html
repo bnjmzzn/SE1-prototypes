@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeamOcean</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100">
+
+<nav class="border-b border-slate-800 sticky top-0 bg-slate-950/90 backdrop-blur z-50">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+        <span class="font-bold text-xl">TeamOcean</span>
+        <div class="flex gap-4 text-sm text-slate-300">
+            <a href="#donate" class="hover:text-white">Donate</a>
+            <a href="#leaderboard" class="hover:text-white">Leaderboard</a>
+        </div>
+    </div>
+</nav>
+
+<section class="max-w-5xl mx-auto px-4 py-20 text-center">
+    <h1 class="text-4xl font-bold mb-4">Every dollar removes 1kg of ocean plastic</h1>
+    <p class="text-slate-400 max-w-xl mx-auto mb-8">A prototype donation site. No real payments happen here.</p>
+    <a href="#donate" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-lg font-medium">Donate now</a>
+</section>
+
+<section id="about" class="max-w-5xl mx-auto px-4 py-16 border-t border-slate-800">
+    <div class="grid md:grid-cols-2 gap-8 items-center">
+        <svg class="rounded-lg w-full bg-slate-800" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+            <rect width="600" height="400" fill="#1e293b"/>
+            <text x="300" y="200" fill="#94a3b8" font-family="sans-serif" font-size="24" text-anchor="middle" dominant-baseline="middle">About Us</text>
+        </svg>
+        <div>
+            <h2 class="text-2xl font-bold mb-4">About us</h2>
+            <p class="text-slate-400 mb-3">TeamOcean is a placeholder cause built for this prototype. Copy here is filler and not a real organization.</p>
+            <p class="text-slate-400">Replace this section with real mission, partners, and impact numbers before launch.</p>
+        </div>
+    </div>
+</section>
+
+<section class="max-w-5xl mx-auto px-4 py-16 border-t border-slate-800">
+    <h2 class="text-2xl font-bold mb-6 text-center">Our impact</h2>
+    <div class="grid grid-cols-3 gap-4">
+        <svg class="rounded-lg w-full bg-slate-800" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+            <rect width="400" height="300" fill="#1e293b"/>
+            <text x="200" y="150" fill="#94a3b8" font-family="sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">Cleanup 1</text>
+        </svg>
+        <svg class="rounded-lg w-full bg-slate-800" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+            <rect width="400" height="300" fill="#1e293b"/>
+            <text x="200" y="150" fill="#94a3b8" font-family="sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">Cleanup 2</text>
+        </svg>
+        <svg class="rounded-lg w-full bg-slate-800" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+            <rect width="400" height="300" fill="#1e293b"/>
+            <text x="200" y="150" fill="#94a3b8" font-family="sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">Cleanup 3</text>
+        </svg>
+    </div>
+</section>
+
+<section id="donate" class="max-w-md mx-auto px-4 py-16 border-t border-slate-800">
+    <h2 class="text-2xl font-bold mb-6">Donate</h2>
+
+    <div id="donateFormStep">
+        <label class="block text-sm text-slate-400 mb-1">Amount (USD)</label>
+        <div class="flex gap-2 mb-4">
+            <button class="amountBtn bg-slate-800 hover:bg-slate-700 rounded px-4 py-2" data-amount="5">$5</button>
+            <button class="amountBtn bg-slate-800 hover:bg-slate-700 rounded px-4 py-2" data-amount="10">$10</button>
+            <button class="amountBtn bg-slate-800 hover:bg-slate-700 rounded px-4 py-2" data-amount="25">$25</button>
+            <input id="customAmount" type="number" min="1" placeholder="Other" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 w-24 text-sm">
+        </div>
+
+        <label class="block text-sm text-slate-400 mb-1">Username</label>
+        <input id="donorName" type="text" maxlength="24" placeholder="Anonymous" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 mb-4">
+
+        <label class="flex items-center gap-2 text-sm text-slate-400 mb-4">
+            <input id="donorAnon" type="checkbox" class="accent-blue-600">
+            Donate anonymously
+        </label>
+
+        <label class="block text-sm text-slate-400 mb-1">Message (optional)</label>
+        <textarea id="donorMessage" maxlength="120" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 mb-6"></textarea>
+
+        <button id="goToPayment" class="w-full bg-blue-600 hover:bg-blue-500 rounded py-3 font-medium">Continue to payment</button>
+    </div>
+
+    <div id="paymentStep" class="hidden text-center py-8">
+        <p class="text-slate-300 mb-2">Assume you are redirected to the next page by Payrex.</p>
+        <p class="text-slate-500 text-sm mb-6">The payment is successful.</p>
+        <button id="confirmPayment" class="w-full bg-green-600 hover:bg-green-500 rounded py-3 font-medium">Continue</button>
+        <button id="backToForm" class="w-full text-slate-400 text-sm mt-3">Back</button>
+    </div>
+
+    <div id="successStep" class="hidden text-center py-8">
+        <p class="text-xl font-bold mb-2">Thanks for donating!</p>
+        <p class="text-slate-400 text-sm">Your donation was added to the leaderboard.</p>
+        <button id="donateAgain" class="mt-6 text-blue-400 text-sm">Donate again</button>
+    </div>
+</section>
+
+<section id="leaderboard" class="max-w-2xl mx-auto px-4 py-16 border-t border-slate-800">
+    <h2 class="text-2xl font-bold mb-6">Leaderboard</h2>
+
+    <div class="flex gap-2 mb-4">
+        <button id="tabTop" class="leaderboardTab bg-blue-600 rounded px-4 py-2 text-sm font-medium">Top donators</button>
+        <button id="tabRecent" class="leaderboardTab bg-slate-800 rounded px-4 py-2 text-sm font-medium">Recent</button>
+    </div>
+
+    <div id="leaderboardList" class="space-y-2"></div>
+
+    <div id="leaderboardPagination" class="flex justify-center gap-2 mt-6"></div>
+</section>
+
+<footer class="border-t border-slate-800 py-10 text-sm text-slate-500">
+    <div class="max-w-5xl mx-auto px-4 flex flex-wrap justify-between gap-4">
+        <span>&copy; 2026 TeamOcean. Prototype only.</span>
+        <div class="flex gap-4">
+            <a href="#" class="hover:text-slate-300">Privacy Policy</a>
+            <a href="#" class="hover:text-slate-300">Terms of Service</a>
+            <a href="#" class="hover:text-slate-300">Contact</a>
+            <a href="#" class="hover:text-slate-300">FAQ</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+let selectedAmount = 5;
+let activeTab = "top";
+let currentPage = 1;
+const PAGE_SIZE = 5;
+const MAX_ENTRIES = 25;
+
+const now = Date.now();
+const names = ["jordanb", "seacleanup_fan", "kai.m", "reef_runner", "blue.tide", "n0va", "marina_k", "divewithme", "plastic_free_pete", "oceanlover22", "sam.r", "tidepool_tim", "wavewatcher", "coral_queen", "deepblue99", "finn_a", "saltyshores", "riptide_ray", "hannah.w", "seaglass_gal", "bluewhale_fan", "netzero_nate", "aquaholic", "shorewalker", "pelagic_paul"];
+
+let donations = names.map(function(name, i) {
+    return {
+        name: name,
+        amount: Math.floor(Math.random() * 95) + 5,
+        message: i % 3 === 0 ? "keep it up" : "",
+        createdAt: now - i * 3600000
+    };
+});
+
+document.querySelectorAll(".amountBtn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+        selectedAmount = Number(btn.dataset.amount);
+        document.getElementById("customAmount").value = "";
+    });
+});
+
+document.getElementById("customAmount").addEventListener("input", function(e) {
+    if (e.target.value) {
+        selectedAmount = Number(e.target.value);
+    }
+});
+
+document.getElementById("goToPayment").addEventListener("click", function() {
+    if (!selectedAmount || selectedAmount <= 0) {
+        alert("Enter a valid amount");
+        return;
+    }
+    document.getElementById("donateFormStep").classList.add("hidden");
+    document.getElementById("paymentStep").classList.remove("hidden");
+});
+
+document.getElementById("backToForm").addEventListener("click", function() {
+    document.getElementById("paymentStep").classList.add("hidden");
+    document.getElementById("donateFormStep").classList.remove("hidden");
+});
+
+document.getElementById("confirmPayment").addEventListener("click", function() {
+    const isAnon = document.getElementById("donorAnon").checked;
+    const nameInput = document.getElementById("donorName").value.trim();
+    const name = isAnon || !nameInput ? "Anonymous" : nameInput;
+    const message = document.getElementById("donorMessage").value.trim();
+
+    donations.unshift({
+        name: name,
+        amount: selectedAmount,
+        message: message,
+        createdAt: Date.now()
+    });
+
+    if (donations.length > MAX_ENTRIES) {
+        donations = donations.slice(0, MAX_ENTRIES);
+    }
+
+    currentPage = 1;
+    renderLeaderboard();
+
+    document.getElementById("paymentStep").classList.add("hidden");
+    document.getElementById("successStep").classList.remove("hidden");
+});
+
+document.getElementById("donateAgain").addEventListener("click", function() {
+    document.getElementById("donorName").value = "";
+    document.getElementById("donorMessage").value = "";
+    document.getElementById("donorAnon").checked = false;
+    document.getElementById("customAmount").value = "";
+    selectedAmount = 5;
+
+    document.getElementById("successStep").classList.add("hidden");
+    document.getElementById("donateFormStep").classList.remove("hidden");
+});
+
+document.getElementById("tabTop").addEventListener("click", function() {
+    activeTab = "top";
+    currentPage = 1;
+    document.getElementById("tabTop").classList.add("bg-blue-600");
+    document.getElementById("tabTop").classList.remove("bg-slate-800");
+    document.getElementById("tabRecent").classList.add("bg-slate-800");
+    document.getElementById("tabRecent").classList.remove("bg-blue-600");
+    renderLeaderboard();
+});
+
+document.getElementById("tabRecent").addEventListener("click", function() {
+    activeTab = "recent";
+    currentPage = 1;
+    document.getElementById("tabRecent").classList.add("bg-blue-600");
+    document.getElementById("tabRecent").classList.remove("bg-slate-800");
+    document.getElementById("tabTop").classList.add("bg-slate-800");
+    document.getElementById("tabTop").classList.remove("bg-blue-600");
+    renderLeaderboard();
+});
+
+function renderLeaderboard() {
+    const capped = donations.slice(0, MAX_ENTRIES);
+
+    const sorted = capped.slice().sort(function(a, b) {
+        if (activeTab === "recent") {
+            return b.createdAt - a.createdAt;
+        }
+        return b.amount - a.amount;
+    });
+
+    const list = document.getElementById("leaderboardList");
+    const pagination = document.getElementById("leaderboardPagination");
+
+    if (sorted.length === 0) {
+        list.innerHTML = '<p class="text-slate-500 text-sm">No donations yet.</p>';
+        pagination.innerHTML = "";
+        return;
+    }
+
+    const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+    if (currentPage > totalPages) {
+        currentPage = totalPages;
+    }
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = sorted.slice(start, start + PAGE_SIZE);
+
+    list.innerHTML = pageItems.map(function(d, i) {
+        const messageHtml = d.message ? '<p class="text-slate-400 text-xs mt-1">' + escapeHtml(d.message) + '</p>' : "";
+        return '<div class="bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 flex justify-between items-start">' +
+            '<div>' +
+                '<p class="font-medium">#' + (start + i + 1) + ' ' + escapeHtml(d.name) + '</p>' +
+                messageHtml +
+            '</div>' +
+            '<p class="font-bold text-blue-400">$' + d.amount + '</p>' +
+        '</div>';
+    }).join("");
+
+    pagination.innerHTML = "";
+    for (let p = 1; p <= totalPages; p++) {
+        const btn = document.createElement("button");
+        btn.textContent = p;
+        btn.className = "px-3 py-1 rounded text-sm " + (p === currentPage ? "bg-blue-600" : "bg-slate-800 hover:bg-slate-700");
+        btn.addEventListener("click", function() {
+            currentPage = p;
+            renderLeaderboard();
+        });
+        pagination.appendChild(btn);
+    }
+}
+
+function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+renderLeaderboard();
+</script>
+
+</body>
+</html>

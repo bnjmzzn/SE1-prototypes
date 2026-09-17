@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>City Builder Prototype</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 overflow-hidden h-screen w-screen m-0 fixed inset-0 touch-none">
+
+<div id="hud" class="fixed top-0 left-0 right-0 z-20 flex items-center justify-between gap-2 bg-slate-800/90 px-3 py-2 border-b border-slate-700 text-sm overflow-x-auto">
+    <div class="flex items-center gap-2 shrink-0">
+        <span id="userLabel" class="text-slate-300 truncate max-w-[80px]"></span>
+        <button id="logoutBtn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">logout</button>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+        <button id="toggleAuthors" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">names: off</button>
+        <button id="leaderboardBtn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">rank</button>
+        <button id="historyBtn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">history</button>
+        <button id="aboutBtn" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">about</button>
+        <span>bal: <span id="balance" class="font-bold text-emerald-400"></span></span>
+        <button id="topupBtn" class="text-xs bg-emerald-700 hover:bg-emerald-600 px-2 py-1 rounded">top up</button>
+    </div>
+</div>
+
+<div id="loginScreen" class="fixed inset-0 z-30 flex items-center justify-center bg-slate-900">
+    <div class="bg-slate-800 p-6 rounded w-72 flex flex-col gap-3">
+        <span class="text-lg font-semibold">enter a name</span>
+        <input id="usernameInput" type="text" placeholder="username" class="bg-slate-700 px-3 py-2 rounded outline-none">
+        <button id="loginBtn" class="bg-emerald-700 hover:bg-emerald-600 px-3 py-2 rounded">start</button>
+    </div>
+</div>
+
+<div id="topupModal" class="fixed inset-0 z-30 hidden items-center justify-center bg-black/60">
+    <div class="bg-slate-800 p-6 rounded w-80 flex flex-col gap-3">
+        <span class="text-lg font-semibold">top up currency</span>
+        <span class="text-sm text-slate-400">assume you are redirected to a payment processor in a new tab, then returned here after payment succeeds.</span>
+        <div class="grid grid-cols-3 gap-2">
+            <button class="topupOption bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded" data-amount="50">50</button>
+            <button class="topupOption bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded" data-amount="100">100</button>
+            <button class="topupOption bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded" data-amount="500">500</button>
+        </div>
+        <button id="closeTopup" class="text-xs text-slate-400 hover:text-slate-200 mt-2">cancel</button>
+    </div>
+</div>
+
+<div id="leaderboardModal" class="fixed inset-0 z-30 hidden items-center justify-center bg-black/60">
+    <div class="bg-slate-800 p-6 rounded w-80 max-h-[70vh] flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+            <span class="text-lg font-semibold">leaderboard</span>
+            <button class="closeModal text-xs text-slate-400 hover:text-slate-200" data-target="leaderboardModal">close</button>
+        </div>
+        <div id="leaderboardList" class="flex flex-col gap-1 overflow-y-auto text-sm"></div>
+    </div>
+</div>
+
+<div id="historyModal" class="fixed inset-0 z-30 hidden items-center justify-center bg-black/60">
+    <div class="bg-slate-800 p-6 rounded w-80 max-h-[70vh] flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+            <span class="text-lg font-semibold">transaction history</span>
+            <button class="closeModal text-xs text-slate-400 hover:text-slate-200" data-target="historyModal">close</button>
+        </div>
+        <div id="historyList" class="flex flex-col gap-1 overflow-y-auto text-sm"></div>
+    </div>
+</div>
+
+<div id="aboutModal" class="fixed inset-0 z-30 hidden items-center justify-center bg-black/60">
+    <div class="bg-slate-800 p-6 rounded w-80 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+            <span class="text-lg font-semibold">about</span>
+            <button class="closeModal text-xs text-slate-400 hover:text-slate-200" data-target="aboutModal">close</button>
+        </div>
+        <p class="text-sm text-slate-400">a prototype city builder. place buildings on a finite canvas using currency. all data is client-side only and resets on refresh, nothing is saved to a server.</p>
+        <p class="text-xs text-slate-500">no accounts, no payments, no persistence. for demonstration purposes.</p>
+    </div>
+</div>
+
+<div id="hoverTag" class="fixed z-40 hidden pointer-events-none bg-black/80 text-xs px-2 py-1 rounded"></div>
+
+<div id="buildBar" class="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-2 bg-slate-800/90 px-3 py-2 border-t border-slate-700 overflow-x-auto"></div>
+
+<div id="viewport" class="absolute top-0 left-0 w-full h-full overflow-hidden cursor-grab" style="padding-top:44px; padding-bottom:60px;">
+    <canvas id="canvas" class="bg-slate-700"></canvas>
+</div>
+
+<script>
+const CANVAS_W = 3000;
+const CANVAS_H = 2000;
+const GRID = 20;
+const SIZE = 32;
+
+const BUILDINGS = [
+    { id: "tree", label: "Tree", cost: 5, color: "#22c55e", svg: '<circle cx="16" cy="12" r="9" fill="#22c55e"/><rect x="13" y="18" width="6" height="10" fill="#78350f"/>' },
+    { id: "house", label: "House", cost: 20, color: "#f59e0b", svg: '<polygon points="16,4 28,16 4,16" fill="#b91c1c"/><rect x="7" y="16" width="18" height="12" fill="#f59e0b"/>' },
+    { id: "well", label: "Well", cost: 15, color: "#64748b", svg: '<rect x="6" y="16" width="20" height="12" fill="#64748b"/><rect x="4" y="6" width="24" height="6" fill="#78350f"/>' },
+    { id: "church", label: "Church", cost: 60, color: "#e5e7eb", svg: '<rect x="10" y="14" width="12" height="16" fill="#e5e7eb"/><rect x="14" y="2" width="4" height="10" fill="#e5e7eb"/><rect x="12" y="6" width="8" height="3" fill="#e5e7eb"/>' },
+    { id: "wall", label: "Wall", cost: 8, color: "#78716c", svg: '<rect x="2" y="10" width="28" height="14" fill="#78716c"/><rect x="2" y="10" width="6" height="6" fill="#57534e"/><rect x="12" y="10" width="6" height="6" fill="#57534e"/><rect x="22" y="10" width="6" height="6" fill="#57534e"/>' },
+    { id: "cat", label: "Cat", cost: 30, color: "#f97316", svg: '<circle cx="16" cy="18" r="8" fill="#f97316"/><polygon points="10,12 8,4 14,10" fill="#f97316"/><polygon points="22,12 24,4 18,10" fill="#f97316"/>' },
+    { id: "lake", label: "Lake", cost: 0, color: "#0ea5e9", svg: '<ellipse cx="16" cy="16" rx="14" ry="10" fill="#0ea5e9"/>' },
+    { id: "mountain", label: "Mountain", cost: 0, color: "#94a3b8", svg: '<polygon points="16,4 28,28 4,28" fill="#94a3b8"/><polygon points="16,4 21,14 11,14" fill="#e2e8f0"/>' },
+    { id: "shop", label: "Shop", cost: 50, color: "#3b82f6", svg: '<rect x="6" y="12" width="20" height="16" fill="#3b82f6"/><rect x="6" y="8" width="20" height="6" fill="#1d4ed8"/>' },
+    { id: "factory", label: "Factory", cost: 120, color: "#ef4444", svg: '<rect x="4" y="16" width="24" height="12" fill="#ef4444"/><rect x="8" y="6" width="4" height="10" fill="#7f1d1d"/><rect x="18" y="4" width="4" height="12" fill="#7f1d1d"/>' }
+];
+
+const PLACEABLE_IDS = ["tree", "house", "well", "church", "wall", "cat", "shop", "factory"];
+
+const buildingImages = {};
+function preloadBuildingImages() {
+    for (const b of BUILDINGS) {
+        const svgStr = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' + b.svg + '</svg>';
+        const img = new Image();
+        img.src = "data:image/svg+xml;base64," + btoa(svgStr);
+        buildingImages[b.id] = img;
+    }
+}
+
+const FAKE_AUTHORS = ["north_dev", "kai_pixel", "aurelia", "zed", "mochi_", "renji88"];
+
+function makeFakeBuildings() {
+    const list = [];
+    const centerX = CANVAS_W / 2;
+    const centerY = CANVAS_H / 2;
+    const spread = 260;
+
+    for (let i = 0; i < 6; i++) {
+        const type = Math.random() < 0.5 ? "lake" : "mountain";
+        const gx = Math.floor(Math.random() * (CANVAS_W / GRID)) * GRID;
+        const gy = Math.floor(Math.random() * (CANVAS_H / GRID)) * GRID;
+        list.push({ type: type, gx: gx, gy: gy, author: null });
+    }
+
+    for (let i = 0; i < 40; i++) {
+        const type = PLACEABLE_IDS[Math.floor(Math.random() * PLACEABLE_IDS.length)];
+        const offsetX = (Math.random() - 0.5) * spread * 2;
+        const offsetY = (Math.random() - 0.5) * spread * 2;
+        const gx = Math.round((centerX + offsetX) / GRID) * GRID;
+        const gy = Math.round((centerY + offsetY) / GRID) * GRID;
+        const author = FAKE_AUTHORS[Math.floor(Math.random() * FAKE_AUTHORS.length)];
+        list.push({ type: type, gx: gx, gy: gy, author: author });
+    }
+    return list;
+}
+
+let state = {
+    username: "",
+    balance: 100,
+    placed: makeFakeBuildings(),
+    selectedBuilding: null,
+    showAuthors: false,
+    camX: 0,
+    camY: 0,
+    history: []
+};
+
+const viewport = document.getElementById("viewport");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const hoverTag = document.getElementById("hoverTag");
+
+let dragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let camStartX = 0;
+let camStartY = 0;
+let dragMoved = false;
+
+function viewportSize() {
+    const rect = viewport.getBoundingClientRect();
+    return { w: rect.width, h: rect.height };
+}
+
+function clampCamera() {
+    const vp = viewportSize();
+    state.camX = Math.min(0, Math.max(state.camX, vp.w - CANVAS_W));
+    state.camY = Math.min(0, Math.max(state.camY, vp.h - CANVAS_H));
+}
+
+function resizeCanvas() {
+    const vp = viewportSize();
+    canvas.width = vp.w;
+    canvas.height = vp.h;
+    if (!state.initialized) {
+        state.camX = vp.w / 2 - CANVAS_W / 2;
+        state.camY = vp.h / 2 - CANVAS_H / 2;
+        state.initialized = true;
+    }
+    clampCamera();
+    render();
+}
+
+function worldToDisplay(gx, gy) {
+    return { x: gx - CANVAS_W / 2, y: gy - CANVAS_H / 2 };
+}
+
+function gridPointToScreen(gx, gy) {
+    return { x: gx + state.camX, y: gy + state.camY };
+}
+
+function screenToWorld(sx, sy) {
+    return { x: sx - state.camX, y: sy - state.camY };
+}
+
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= CANVAS_W; x += GRID) {
+        const sx = x + state.camX;
+        if (sx < 0 || sx > canvas.width) continue;
+        ctx.beginPath();
+        ctx.moveTo(sx, 0);
+        ctx.lineTo(sx, canvas.height);
+        ctx.stroke();
+    }
+    for (let y = 0; y <= CANVAS_H; y += GRID) {
+        const sy = y + state.camY;
+        if (sy < 0 || sy > canvas.height) continue;
+        ctx.beginPath();
+        ctx.moveTo(0, sy);
+        ctx.lineTo(canvas.width, sy);
+        ctx.stroke();
+    }
+
+    if (state.selectedBuilding && state.hoverCell) {
+        const pt = gridPointToScreen(state.hoverCell.gx, state.hoverCell.gy);
+        const halfCell = GRID / 2;
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        ctx.fillRect(pt.x - halfCell, pt.y - halfCell, GRID, GRID);
+        ctx.strokeStyle = "rgba(255,255,255,0.5)";
+        ctx.strokeRect(pt.x - halfCell, pt.y - halfCell, GRID, GRID);
+
+        const disp = worldToDisplay(state.hoverCell.gx, state.hoverCell.gy);
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.font = "11px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("(" + disp.x + ", " + disp.y + ")", pt.x, pt.y - halfCell - 6);
+    }
+
+    for (const b of state.placed) {
+        const pt = gridPointToScreen(b.gx, b.gy);
+        const half = SIZE / 2;
+        const img = buildingImages[b.type];
+
+        if (img && img.complete) {
+            ctx.drawImage(img, pt.x - half, pt.y - half, SIZE, SIZE);
+        } else {
+            const def = BUILDINGS.find(function (d) { return d.id === b.type; });
+            ctx.fillStyle = def.color;
+            ctx.fillRect(pt.x - half, pt.y - half, SIZE, SIZE);
+        }
+
+        if (b === state.hovered) {
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(pt.x - half - 2, pt.y - half - 2, SIZE + 4, SIZE + 4);
+            ctx.lineWidth = 1;
+        }
+
+        if (b.author && state.showAuthors) {
+            ctx.fillStyle = "rgba(255,255,255,0.8)";
+            ctx.font = "10px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(b.author, pt.x, pt.y + half + 12);
+        }
+    }
+}
+
+function updateHud() {
+    document.getElementById("userLabel").textContent = state.username;
+    document.getElementById("balance").textContent = state.balance;
+}
+
+function buildBuildBar() {
+    const bar = document.getElementById("buildBar");
+    bar.innerHTML = "";
+    for (const id of PLACEABLE_IDS) {
+        const b = BUILDINGS.find(function (d) { return d.id === id; });
+        const btn = document.createElement("button");
+        btn.className = "buildOption flex flex-col items-center px-3 py-2 rounded border border-slate-600 hover:border-slate-400 shrink-0";
+        btn.dataset.id = b.id;
+        btn.innerHTML =
+            '<img src="' + buildingImages[b.id].src + '" class="w-6 h-6 mb-1" />' +
+            '<span class="text-xs">' + b.label + '</span>' +
+            '<span class="text-xs text-emerald-400">' + b.cost + '</span>';
+        btn.addEventListener("click", function () {
+            state.selectedBuilding = b.id;
+            document.querySelectorAll(".buildOption").forEach(function (el) {
+                el.classList.remove("bg-slate-600");
+            });
+            btn.classList.add("bg-slate-600");
+        });
+        bar.appendChild(btn);
+    }
+}
+
+function nearestGridPoint(worldX, worldY) {
+    const gx = Math.round(worldX / GRID) * GRID;
+    const gy = Math.round(worldY / GRID) * GRID;
+    return { gx: gx, gy: gy };
+}
+
+function findBuildingAt(worldX, worldY) {
+    const half = SIZE / 2;
+    for (let i = state.placed.length - 1; i >= 0; i--) {
+        const b = state.placed[i];
+        if (worldX >= b.gx - half && worldX <= b.gx + half && worldY >= b.gy - half && worldY <= b.gy + half) {
+            return b;
+        }
+    }
+    return null;
+}
+
+function pointerDown(clientX, clientY) {
+    dragging = true;
+    dragMoved = false;
+    dragStartX = clientX;
+    dragStartY = clientY;
+    camStartX = state.camX;
+    camStartY = state.camY;
+}
+
+function pointerMove(clientX, clientY) {
+    if (!dragging) {
+        const rect = canvas.getBoundingClientRect();
+        const world = screenToWorld(clientX - rect.left, clientY - rect.top);
+
+        state.hoverCell = nearestGridPoint(world.x, world.y);
+
+        const hit = findBuildingAt(world.x, world.y);
+        state.hovered = hit;
+        if (hit) {
+            hoverTag.textContent = hit.author ? hit.author : "you";
+            hoverTag.style.left = clientX + 10 + "px";
+            hoverTag.style.top = clientY + 10 + "px";
+            hoverTag.classList.remove("hidden");
+        } else {
+            hoverTag.classList.add("hidden");
+        }
+        render();
+        return;
+    }
+
+    const dx = clientX - dragStartX;
+    const dy = clientY - dragStartY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved = true;
+
+    state.camX = camStartX + dx;
+    state.camY = camStartY + dy;
+    clampCamera();
+    render();
+}
+
+function pointerUp(clientX, clientY) {
+    dragging = false;
+
+    if (dragMoved) return;
+    if (!state.selectedBuilding) return;
+
+    const def = BUILDINGS.find(function (d) { return d.id === state.selectedBuilding; });
+    if (state.balance < def.cost) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const world = screenToWorld(clientX - rect.left, clientY - rect.top);
+    const pt = nearestGridPoint(world.x, world.y);
+
+    const exact = state.placed.some(function (b) { return b.gx === pt.gx && b.gy === pt.gy; });
+    if (exact) return;
+
+    state.balance -= def.cost;
+    state.placed.push({ type: def.id, gx: pt.gx, gy: pt.gy, author: null });
+
+    const disp = worldToDisplay(pt.gx, pt.gy);
+    state.history.unshift({
+        text: "placed " + def.label + " at (" + disp.x + ", " + disp.y + ")",
+        amount: -def.cost
+    });
+
+    updateHud();
+    render();
+}
+
+canvas.addEventListener("mousedown", function (e) {
+    pointerDown(e.clientX, e.clientY);
+});
+window.addEventListener("mousemove", function (e) {
+    pointerMove(e.clientX, e.clientY);
+});
+window.addEventListener("mouseup", function (e) {
+    pointerUp(e.clientX, e.clientY);
+});
+
+canvas.addEventListener("touchstart", function (e) {
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const world = screenToWorld(t.clientX - rect.left, t.clientY - rect.top);
+    state.hoverCell = nearestGridPoint(world.x, world.y);
+    pointerDown(t.clientX, t.clientY);
+}, { passive: true });
+window.addEventListener("touchmove", function (e) {
+    const t = e.touches[0];
+    pointerMove(t.clientX, t.clientY);
+}, { passive: true });
+window.addEventListener("touchend", function (e) {
+    const t = e.changedTouches[0];
+    pointerUp(t.clientX, t.clientY);
+});
+
+document.getElementById("loginBtn").addEventListener("click", function () {
+    const input = document.getElementById("usernameInput");
+    const name = input.value.trim();
+    if (!name) return;
+    state.username = name;
+    document.getElementById("loginScreen").classList.add("hidden");
+    updateHud();
+});
+
+document.getElementById("logoutBtn").addEventListener("click", function () {
+    state.username = "";
+    state.balance = 100;
+    state.placed = makeFakeBuildings();
+    state.selectedBuilding = null;
+    state.history = [];
+    document.getElementById("usernameInput").value = "";
+    document.getElementById("loginScreen").classList.remove("hidden");
+    render();
+});
+
+document.getElementById("toggleAuthors").addEventListener("click", function (e) {
+    state.showAuthors = !state.showAuthors;
+    e.target.textContent = state.showAuthors ? "names: on" : "names: off";
+    render();
+});
+
+document.getElementById("topupBtn").addEventListener("click", function () {
+    document.getElementById("topupModal").classList.remove("hidden");
+    document.getElementById("topupModal").classList.add("flex");
+});
+
+document.getElementById("closeTopup").addEventListener("click", function () {
+    document.getElementById("topupModal").classList.add("hidden");
+    document.getElementById("topupModal").classList.remove("flex");
+});
+
+document.querySelectorAll(".topupOption").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        const amount = parseInt(btn.dataset.amount, 10);
+        state.balance += amount;
+        state.history.unshift({ text: "topped up", amount: amount });
+        updateHud();
+        document.getElementById("topupModal").classList.add("hidden");
+        document.getElementById("topupModal").classList.remove("flex");
+    });
+});
+
+function openModal(id) {
+    const el = document.getElementById(id);
+    el.classList.remove("hidden");
+    el.classList.add("flex");
+}
+
+function closeModal(id) {
+    const el = document.getElementById(id);
+    el.classList.add("hidden");
+    el.classList.remove("flex");
+}
+
+document.querySelectorAll(".closeModal").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        closeModal(btn.dataset.target);
+    });
+});
+
+function renderLeaderboard() {
+    const counts = {};
+    for (const b of state.placed) {
+        if (b.type === "lake" || b.type === "mountain") continue;
+        const name = b.author ? b.author : (state.username || "you");
+        counts[name] = (counts[name] || 0) + 1;
+    }
+
+    const rows = Object.keys(counts).map(function (name) {
+        return { name: name, count: counts[name] };
+    }).sort(function (a, b) { return b.count - a.count; });
+
+    const list = document.getElementById("leaderboardList");
+    list.innerHTML = "";
+    rows.forEach(function (r, i) {
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between px-2 py-1 rounded " + (i === 0 ? "bg-slate-700" : "");
+        row.innerHTML =
+            '<span>' + (i + 1) + '. ' + r.name + '</span>' +
+            '<span class="text-emerald-400">' + r.count + '</span>';
+        list.appendChild(row);
+    });
+}
+
+function renderHistory() {
+    const list = document.getElementById("historyList");
+    list.innerHTML = "";
+
+    if (state.history.length === 0) {
+        list.innerHTML = '<span class="text-slate-500 text-xs">no transactions yet</span>';
+        return;
+    }
+
+    state.history.forEach(function (h) {
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between px-2 py-1 rounded bg-slate-700/40";
+        const sign = h.amount >= 0 ? "+" : "";
+        const color = h.amount >= 0 ? "text-emerald-400" : "text-red-400";
+        row.innerHTML =
+            '<span class="text-xs">' + h.text + '</span>' +
+            '<span class="text-xs ' + color + '">' + sign + h.amount + '</span>';
+        list.appendChild(row);
+    });
+}
+
+document.getElementById("leaderboardBtn").addEventListener("click", function () {
+    renderLeaderboard();
+    openModal("leaderboardModal");
+});
+
+document.getElementById("historyBtn").addEventListener("click", function () {
+    renderHistory();
+    openModal("historyModal");
+});
+
+document.getElementById("aboutBtn").addEventListener("click", function () {
+    openModal("aboutModal");
+});
+
+window.addEventListener("resize", resizeCanvas);
+
+preloadBuildingImages();
+resizeCanvas();
+buildBuildBar();
+updateHud();
+
+let imagesReady = 0;
+const totalImages = BUILDINGS.length;
+for (const id in buildingImages) {
+    buildingImages[id].onload = function () {
+        imagesReady++;
+        render();
+    };
+}
+</script>
+
+</body>
+</html>
