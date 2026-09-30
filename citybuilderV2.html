@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    body { margin: 0; overflow: hidden; background: #fff; font-family: sans-serif; }
+    #drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 200px; background: #f4f4f4; border-right: 1px solid #999; transition: transform 0.2s; z-index: 5; }
+    #drawer.collapsed { transform: translateX(-200px); }
+    #drawer h3 { margin: 16px; }
+    #drawer a { display: block; padding: 10px 16px; color: #333; text-decoration: none; cursor: pointer; }
+    #drawer a:hover { background: #e2e2e2; }
+    #toggle { position: absolute; top: 8px; right: -34px; width: 34px; height: 34px; cursor: pointer; border: 1px solid #999; background: #f4f4f4; }
+    #menu { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: none; gap: 8px; padding: 8px; background: #fff; border: 1px solid #999; }
+    #menu button { padding: 8px 12px; cursor: pointer; }
+    #info { position: fixed; top: 16px; right: 16px; display: none; padding: 12px 16px; background: #fff; border: 1px solid #999; line-height: 1.6; }
+    #modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.35); z-index: 10; }
+    #box { background: #fff; padding: 20px; min-width: 260px; line-height: 1.8; }
+    #box input { width: 100%; box-sizing: border-box; padding: 6px; }
+    #box button { padding: 8px 14px; cursor: pointer; margin-right: 8px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="drawer">
+    <button id="toggle">&#9776;</button>
+    <h3>Menu</h3>
+    <a>Dashboard</a>
+    <a>Buildings</a>
+    <a>Residents</a>
+    <a>Economy</a>
+    <a>Settings</a>
+</div>
+<div id="menu"></div>
+<div id="info"></div>
+<div id="modal">
+    <div id="box">
+        <div><b>Place building?</b></div>
+        <div id="summary"></div>
+        <input id="nameInput" maxlength="24">
+        <button id="confirm">Confirm</button>
+        <button id="cancel">Cancel</button>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
+<script>
+const GRID = 100;
+const CELL = 48;
+const CENTER_START = 40;
+const CENTER_END = 60;
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 4;
+const DRAG_THRESHOLD = 5;
+const PLAYER_NAME = "Player";
+const SYSTEM_NAME = "System";
+
+const BUILDINGS = [
+    { name: "House", color: 0x4a90d9, shape: "square", cost: 100 },
+    { name: "Tower", color: 0xe67e22, shape: "circle", cost: 250 },
+    { name: "Farm", color: 0x27ae60, shape: "triangle", cost: 150 },
+    { name: "Shop", color: 0x9b59b6, shape: "diamond", cost: 200 },
+    { name: "Temple", color: 0xc0392b, shape: "hexagon", cost: 500 },
+];
+
+const ROAD_TYPE = BUILDINGS.findIndex(function (building) {
+    return building.name === "Shop";
+});
+const ROAM_TYPE = BUILDINGS.findIndex(function (building) {
+    return building.name === "Farm";
+});
+const ROAD_RADIUS = 4;
+const ROAD_WIDTH = 6;
+const ROAD_COLOR = 0x555555;
+const ROAM_RADIUS = CELL * 1.2;
+const ROAM_SPEED = 40;
+const ROAM_PAUSE_MIN = 0.4;
+const ROAM_PAUSE_MAX = 2;
+const roamers = [];
+
+const entities = [];
+const entityMap = new Map();
+let selectedCell = null;
+let pendingType = null;
+let buildingCounter = 0;
+
+function cellKey(cellX, cellY) {
+    return cellY * GRID + cellX;
+}
+
+function drawShape(graphics, shape) {
+    const half = CELL / 2;
+    const pad = 6;
+    if (shape === "square") {
+        graphics.rect(pad, pad, CELL - pad * 2, CELL - pad * 2);
+        return;
+    }
+    if (shape === "circle") {
+        graphics.circle(half, half, half - pad);
+        return;
+    }
+    if (shape === "triangle") {
+        graphics.poly([half, pad, CELL - pad, CELL - pad, pad, CELL - pad]);
+        return;
+    }
+    if (shape === "diamond") {
+        graphics.poly([half, pad, CELL - pad, half, half, CELL - pad, pad, half]);
+        return;
+    }
+    graphics.poly([
+        pad + 8, pad,
+        CELL - pad - 8, pad,
+        CELL - pad, half,
+        CELL - pad - 8, CELL - pad,
+        pad + 8, CELL - pad,
+        pad, half,
+    ]);
+}
+
+function createInfo(typeIndex, name, placedBy) {
+    buildingCounter += 1;
+    return {
+        name: name,
+        placedBy: placedBy,
+        date: new Date().toLocaleDateString(),
+        cost: BUILDINGS[typeIndex].cost,
+    };
+}
+
+async function main() {
+    const app = new PIXI.Application();
+    await app.init({ resizeTo: window, background: "#ffffff", antialias: true });
+    document.body.appendChild(app.canvas);
+
+    const drawer = document.getElementById("drawer");
+    document.getElementById("toggle").addEventListener("click", function () {
+        drawer.classList.toggle("collapsed");
+    });
+
+    const world = new PIXI.Container();
+    app.stage.addChild(world);
+    world.x = window.innerWidth / 2 - (GRID * CELL) / 2;
+    world.y = window.innerHeight / 2 - (GRID * CELL) / 2;
+
+    const grid = new PIXI.Graphics();
+    for (let index = 0; index <= GRID; index++) {
+        grid.moveTo(index * CELL, 0);
+        grid.lineTo(index * CELL, GRID * CELL);
+        grid.moveTo(0, index * CELL);
+        grid.lineTo(GRID * CELL, index * CELL);
+    }
+    grid.stroke({ width: 1, color: 0xcccccc, pixelLine: true });
+    world.addChild(grid);
+
+    const roadGraphics = new PIXI.Graphics();
+    world.addChild(roadGraphics);
+
+    const entityLayer = new PIXI.Container();
+    world.addChild(entityLayer);
+
+    const roamerLayer = new PIXI.Container();
+    world.addChild(roamerLayer);
+
+    const highlight = new PIXI.Graphics();
+    highlight.rect(0, 0, CELL, CELL);
+    highlight.stroke({ width: 3, color: 0xff0000 });
+    highlight.visible = false;
+    world.addChild(highlight);
+
+    const textures = BUILDINGS.map(function (building) {
+        const graphics = new PIXI.Graphics();
+        drawShape(graphics, building.shape);
+        graphics.fill(building.color);
+        return app.renderer.generateTexture({
+            target: graphics,
+            frame: new PIXI.Rectangle(0, 0, CELL, CELL),
+            resolution: 2,
+        });
+    });
+
+    function placeEntity(cellX, cellY, typeIndex, info) {
+        const key = cellKey(cellX, cellY);
+        if (entityMap.has(key)) {
+            return;
+        }
+        const sprite = new PIXI.Sprite(textures[typeIndex]);
+        sprite.x = cellX * CELL;
+        sprite.y = cellY * CELL;
+        entityLayer.addChild(sprite);
+        const entity = { x: cellX, y: cellY, type: typeIndex, sprite: sprite, info: info };
+        entities.push(entity);
+        entityMap.set(key, entity);
+        if (typeIndex === ROAD_TYPE) {
+            refreshRoads();
+        }
+        if (typeIndex === ROAM_TYPE) {
+            spawnRoamer(entity);
+        }
+    }
+
+    function findNearestSame(entity) {
+        let nearest = null;
+        let nearestDistance = Infinity;
+        for (let offsetY = -ROAD_RADIUS; offsetY <= ROAD_RADIUS; offsetY++) {
+            for (let offsetX = -ROAD_RADIUS; offsetX <= ROAD_RADIUS; offsetX++) {
+                if (offsetX === 0 && offsetY === 0) {
+                    continue;
+                }
+                const neighborX = entity.x + offsetX;
+                const neighborY = entity.y + offsetY;
+                const outOfBounds = neighborX < 0 || neighborY < 0 || neighborX >= GRID || neighborY >= GRID;
+                if (outOfBounds) {
+                    continue;
+                }
+                const neighbor = entityMap.get(cellKey(neighborX, neighborY));
+                if (!neighbor || neighbor.type !== entity.type) {
+                    continue;
+                }
+                const distance = offsetX * offsetX + offsetY * offsetY;
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearest = neighbor;
+                }
+            }
+        }
+        return nearest;
+    }
+
+    function refreshRoads() {
+        roadGraphics.clear();
+        const drawn = new Set();
+        entities.forEach(function (entity) {
+            if (entity.type !== ROAD_TYPE) {
+                return;
+            }
+            const target = findNearestSame(entity);
+            if (!target) {
+                return;
+            }
+            const keyA = cellKey(entity.x, entity.y);
+            const keyB = cellKey(target.x, target.y);
+            const pairKey = Math.min(keyA, keyB) + "-" + Math.max(keyA, keyB);
+            if (drawn.has(pairKey)) {
+                return;
+            }
+            drawn.add(pairKey);
+            roadGraphics.moveTo(entity.x * CELL + CELL / 2, entity.y * CELL + CELL / 2);
+            roadGraphics.lineTo(target.x * CELL + CELL / 2, target.y * CELL + CELL / 2);
+        });
+        roadGraphics.stroke({ width: ROAD_WIDTH, color: ROAD_COLOR });
+    }
+
+    function randomPause() {
+        return ROAM_PAUSE_MIN + Math.random() * (ROAM_PAUSE_MAX - ROAM_PAUSE_MIN);
+    }
+
+    function pickTarget(roamer) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * ROAM_RADIUS;
+        roamer.targetX = roamer.homeX + Math.cos(angle) * distance;
+        roamer.targetY = roamer.homeY + Math.sin(angle) * distance;
+    }
+
+    function spawnRoamer(entity) {
+        const dot = new PIXI.Graphics();
+        dot.circle(0, 0, 4);
+        dot.fill(0x000000);
+        const homeX = entity.x * CELL + CELL / 2;
+        const homeY = entity.y * CELL + CELL / 2;
+        dot.x = homeX;
+        dot.y = homeY;
+        roamerLayer.addChild(dot);
+        const roamer = { sprite: dot, homeX: homeX, homeY: homeY, targetX: homeX, targetY: homeY, wait: randomPause() };
+        pickTarget(roamer);
+        roamers.push(roamer);
+    }
+
+    app.ticker.add(function (ticker) {
+        const seconds = ticker.deltaMS / 1000;
+        roamers.forEach(function (roamer) {
+            if (roamer.wait > 0) {
+                roamer.wait -= seconds;
+                return;
+            }
+            const deltaX = roamer.targetX - roamer.sprite.x;
+            const deltaY = roamer.targetY - roamer.sprite.y;
+            const distance = Math.hypot(deltaX, deltaY);
+            const step = ROAM_SPEED * seconds;
+            if (distance <= step) {
+                roamer.sprite.x = roamer.targetX;
+                roamer.sprite.y = roamer.targetY;
+                roamer.wait = randomPause();
+                pickTarget(roamer);
+                return;
+            }
+            roamer.sprite.x += (deltaX / distance) * step;
+            roamer.sprite.y += (deltaY / distance) * step;
+        });
+    });
+
+    for (let cellY = CENTER_START; cellY < CENTER_END; cellY++) {
+        for (let cellX = CENTER_START; cellX < CENTER_END; cellX++) {
+            const typeIndex = Math.floor(Math.random() * BUILDINGS.length);
+            const name = BUILDINGS[typeIndex].name + " " + (buildingCounter + 1);
+            placeEntity(cellX, cellY, typeIndex, createInfo(typeIndex, name, SYSTEM_NAME));
+        }
+    }
+
+    const menu = document.getElementById("menu");
+    const infoPanel = document.getElementById("info");
+    const modal = document.getElementById("modal");
+    const summary = document.getElementById("summary");
+    const nameInput = document.getElementById("nameInput");
+
+    function showInfo(entity) {
+        const building = BUILDINGS[entity.type];
+        infoPanel.innerHTML =
+            "<b>" + entity.info.name + "</b><br>" +
+            "Type: " + building.name + "<br>" +
+            "Placed by: " + entity.info.placedBy + "<br>" +
+            "Date: " + entity.info.date + "<br>" +
+            "Cost: $" + entity.info.cost + "<br>" +
+            "Cell: " + entity.x + ", " + entity.y;
+        infoPanel.style.display = "block";
+    }
+
+    function openConfirm(typeIndex) {
+        const building = BUILDINGS[typeIndex];
+        pendingType = typeIndex;
+        summary.innerHTML =
+            "Type: " + building.name + "<br>" +
+            "Placed by: " + PLAYER_NAME + "<br>" +
+            "Date: " + new Date().toLocaleDateString() + "<br>" +
+            "Cost: $" + building.cost + "<br>" +
+            "Cell: " + selectedCell.x + ", " + selectedCell.y + "<br>Name:";
+        nameInput.value = building.name + " " + (buildingCounter + 1);
+        modal.style.display = "flex";
+    }
+
+    function closeConfirm() {
+        pendingType = null;
+        modal.style.display = "none";
+    }
+
+    document.getElementById("cancel").addEventListener("click", closeConfirm);
+
+    document.getElementById("confirm").addEventListener("click", function () {
+        if (!selectedCell || pendingType === null) {
+            return;
+        }
+        const typeName = BUILDINGS[pendingType].name;
+        const enteredName = nameInput.value.trim();
+        let finalName = enteredName;
+        if (!enteredName) {
+            finalName = typeName;
+        }
+        placeEntity(selectedCell.x, selectedCell.y, pendingType, createInfo(pendingType, finalName, PLAYER_NAME));
+        closeConfirm();
+        clearSelection();
+    });
+
+    BUILDINGS.forEach(function (building, typeIndex) {
+        const button = document.createElement("button");
+        button.textContent = building.name + " ($" + building.cost + ")";
+        button.style.borderBottom = "4px solid #" + building.color.toString(16).padStart(6, "0");
+        button.addEventListener("click", function () {
+            if (!selectedCell) {
+                return;
+            }
+            openConfirm(typeIndex);
+        });
+        menu.appendChild(button);
+    });
+
+    function clearSelection() {
+        selectedCell = null;
+        highlight.visible = false;
+        menu.style.display = "none";
+        infoPanel.style.display = "none";
+    }
+
+    function selectCell(cellX, cellY) {
+        selectedCell = { x: cellX, y: cellY };
+        highlight.x = cellX * CELL;
+        highlight.y = cellY * CELL;
+        highlight.visible = true;
+    }
+
+    function handleClick(screenX, screenY) {
+        const worldX = (screenX - world.x) / world.scale.x;
+        const worldY = (screenY - world.y) / world.scale.y;
+        const cellX = Math.floor(worldX / CELL);
+        const cellY = Math.floor(worldY / CELL);
+        const outOfBounds = cellX < 0 || cellY < 0 || cellX >= GRID || cellY >= GRID;
+        clearSelection();
+        if (outOfBounds) {
+            return;
+        }
+        selectCell(cellX, cellY);
+        const existing = entityMap.get(cellKey(cellX, cellY));
+        if (existing) {
+            showInfo(existing);
+            return;
+        }
+        menu.style.display = "flex";
+    }
+
+    let dragging = false;
+    let moved = false;
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let lastY = 0;
+
+    app.canvas.addEventListener("pointerdown", function (event) {
+        dragging = true;
+        moved = false;
+        startX = event.clientX;
+        startY = event.clientY;
+        lastX = event.clientX;
+        lastY = event.clientY;
+    });
+
+    window.addEventListener("pointermove", function (event) {
+        if (!dragging) {
+            return;
+        }
+        const distance = Math.hypot(event.clientX - startX, event.clientY - startY);
+        if (distance > DRAG_THRESHOLD) {
+            moved = true;
+        }
+        if (!moved) {
+            return;
+        }
+        world.x += event.clientX - lastX;
+        world.y += event.clientY - lastY;
+        lastX = event.clientX;
+        lastY = event.clientY;
+    });
+
+    window.addEventListener("pointerup", function (event) {
+        if (!dragging) {
+            return;
+        }
+        dragging = false;
+        if (moved) {
+            return;
+        }
+        handleClick(event.clientX, event.clientY);
+    });
+
+    app.canvas.addEventListener("wheel", function (event) {
+        event.preventDefault();
+        let factor = 1 / 1.1;
+        if (event.deltaY < 0) {
+            factor = 1.1;
+        }
+        const nextScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, world.scale.x * factor));
+        const worldX = (event.clientX - world.x) / world.scale.x;
+        const worldY = (event.clientY - world.y) / world.scale.y;
+        world.scale.set(nextScale);
+        world.x = event.clientX - worldX * nextScale;
+        world.y = event.clientY - worldY * nextScale;
+    }, { passive: false });
+}
+
+main();
+</script>
+</body>
+</html>
