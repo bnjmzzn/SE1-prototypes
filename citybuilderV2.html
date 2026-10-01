@@ -2,14 +2,15 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-body{margin:0;overflow:hidden;background:#fff;font-family:sans-serif}
+body{margin:0;overflow:hidden;background:#fff;font-family:sans-serif;touch-action:none}
 #drawer{position:fixed;top:0;left:0;bottom:0;width:200px;background:#f4f4f4;border-right:1px solid #999;transition:transform .2s;z-index:10;display:none;padding:16px;box-sizing:border-box}
 #drawer.collapsed{transform:translateX(-200px)}
 #toggle{position:absolute;top:8px;right:-34px;width:34px;height:34px;cursor:pointer;border:1px solid #999;background:#f4f4f4}
 #drawer nav{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 button{padding:8px 12px;cursor:pointer;background:#fff;border:1px solid #999}
-#menu{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:8px;padding:8px;background:#fff;border:1px solid #999;z-index:5}
+#menu{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:8px;padding:8px;background:#fff;border:1px solid #999;z-index:5;max-width:90vw;overflow-x:auto}
 #info{position:fixed;top:16px;right:16px;display:none;padding:12px;background:#fff;border:1px solid #999;line-height:1.5;z-index:5}
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:20}
 .modal-box{background:#fff;padding:20px;min-width:240px;line-height:1.6}
@@ -17,6 +18,16 @@ button{padding:8px 12px;cursor:pointer;background:#fff;border:1px solid #999}
 .qr-placeholder{width:140px;height:140px;background:#000;margin:12px auto}
 .lb-list{list-style:none;padding:0;margin:8px 0}
 .lb-list li{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:4px 0}
+#bottomNav{position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:1px solid #999;display:none;justify-content:space-around;align-items:center;z-index:9}
+#bottomNav button{padding:6px 10px;font-size:12px}
+@media(max-width:600px){
+  #menu{bottom:64px}
+  #drawer button#toggle{display:none}
+  #drawer{width:100%;bottom:auto;height:auto;border-right:none;border-bottom:1px solid #999}
+  #drawer.collapsed{transform:translateY(-100%)}
+  #authBar{top:12px;left:12px}
+  #info{top:12px;right:12px;max-width:80vw}
+}
 </style>
 </head>
 <body>
@@ -25,7 +36,7 @@ button{padding:8px 12px;cursor:pointer;background:#fff;border:1px solid #999}
     <button id="signInBtn">Sign In</button>
 </div>
 
-<div id="drawer">
+<div id="drawer" class="collapsed">
     <button id="toggle">&#9776;</button>
     <div style="font-weight:bold;margin-bottom:8px;">Menu</div>
     <div>Coins: <span id="coinDisplay">1,250</span></div>
@@ -35,6 +46,13 @@ button{padding:8px 12px;cursor:pointer;background:#fff;border:1px solid #999}
         <button id="leaderboardBtn">Leaderboard</button>
         <button id="signOutBtn">Sign Out</button>
     </nav>
+</div>
+
+<div id="bottomNav">
+    <button id="bnDashboard">Dashboard</button>
+    <button id="bnTopup">Top Up</button>
+    <button id="bnLeaderboard">Leaderboard</button>
+    <button id="bnSignOut">Sign Out</button>
 </div>
 
 <div id="menu"></div>
@@ -86,33 +104,58 @@ button{padding:8px 12px;cursor:pointer;background:#fff;border:1px solid #999}
 const GRID=100, CELL=48, CENTER_START=40, CENTER_END=60, MIN_ZOOM=0.2, MAX_ZOOM=4, DRAG_THRESHOLD=5;
 let PLAYER_NAME="Guest", SYSTEM_NAME="System", isSignedIn=false;
 
-const drawer=document.getElementById("drawer"), signInBtn=document.getElementById("signInBtn"), signOutBtn=document.getElementById("signOutBtn");
+const drawer=document.getElementById("drawer"), signInBtn=document.getElementById("signInBtn"), signOutBtn=document.getElementById("signOutBtn"), bottomNav=document.getElementById("bottomNav");
 const dashboardBtn=document.getElementById("dashboardBtn"), topupBtn=document.getElementById("topupBtn"), leaderboardBtn=document.getElementById("leaderboardBtn");
 const dashboardModal=document.getElementById("dashboardModal"), topupModal=document.getElementById("topupModal"), leaderboardModal=document.getElementById("leaderboardModal");
 
+function checkLayout(){
+    const isMobile=window.innerWidth<=600;
+    if(isSignedIn){
+        if(isMobile){
+            drawer.style.display="none";
+            bottomNav.style.display="flex";
+        }else{
+            drawer.style.display="block";
+            bottomNav.style.display="none";
+        }
+    }else{
+        drawer.style.display="none";
+        bottomNav.style.display="none";
+    }
+}
+window.addEventListener("resize", checkLayout);
+
 signInBtn.onclick=()=>{
     isSignedIn=true; PLAYER_NAME="Player1";
-    drawer.style.display="block"; signInBtn.style.display="none";
+    signInBtn.style.display="none";
+    checkLayout();
 };
 
-signOutBtn.onclick=()=>{
+const handleSignOut=()=>{
     isSignedIn=false; PLAYER_NAME="Guest";
-    drawer.style.display="none"; signInBtn.style.display="inline-block";
+    signInBtn.style.display="inline-block";
+    checkLayout();
     clearSelection();
 };
+signOutBtn.onclick=handleSignOut;
+document.getElementById("bnSignOut").onclick=handleSignOut;
 
 const toggleModal=(m, show)=>m.style.display=show?"flex":"none";
 
-dashboardBtn.onclick=()=>{
+const handleDashboard=()=>{
     document.getElementById("ownedCount").textContent=entities.filter(e=>e.info.placedBy===PLAYER_NAME).length;
     toggleModal(dashboardModal, true);
 };
+dashboardBtn.onclick=handleDashboard;
+document.getElementById("bnDashboard").onclick=handleDashboard;
 document.getElementById("closeDashboard").onclick=()=>toggleModal(dashboardModal, false);
 
 topupBtn.onclick=()=>toggleModal(topupModal, true);
+document.getElementById("bnTopup").onclick=()=>toggleModal(topupModal, true);
 document.getElementById("closeTopup").onclick=()=>toggleModal(topupModal, false);
 
 leaderboardBtn.onclick=()=>toggleModal(leaderboardModal, true);
+document.getElementById("bnLeaderboard").onclick=()=>toggleModal(leaderboardModal, true);
 document.getElementById("closeLeaderboard").onclick=()=>toggleModal(leaderboardModal, false);
 
 const BUILDINGS=[
@@ -139,6 +182,8 @@ function drawShape(g,s){
 }
 
 const createInfo=(t,n,p)=>({name:n,placedBy:p,date:new Date().toLocaleDateString(),cost:BUILDINGS[t].cost,id:++buildingCounter});
+
+let clearSelection=()=>{};
 
 async function main(){
     const app=new PIXI.Application();
@@ -286,10 +331,10 @@ async function main(){
         menu.appendChild(btn);
     });
 
-    function clearSelection(){
+    clearSelection=function(){
         selectedCell=null; highlight.visible=false;
         menu.style.display="none"; infoPanel.style.display="none";
-    }
+    };
 
     function handleClick(sx,sy){
         const wx=(sx-world.x)/world.scale.x, wy=(sy-world.y)/world.scale.y;
@@ -303,26 +348,67 @@ async function main(){
         if(isSignedIn) menu.style.display="flex";
     }
 
-    let dragging=false, moved=false, startX=0, startY=0, lastX=0, lastY=0;
+    let activePointers=new Map(), isMultiTouch=false, initialPinchDist=0, initialScale=1;
+    let dragStartX=0, dragStartY=0, worldStartX=0, worldStartY=0, hasMoved=false;
 
     app.canvas.addEventListener("pointerdown", e=>{
-        dragging=true; moved=false;
-        startX=lastX=e.clientX; startY=lastY=e.clientY;
+        activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+        if(activePointers.size===1){
+            isMultiTouch=false; hasMoved=false;
+            dragStartX=e.clientX; dragStartY=e.clientY;
+            worldStartX=world.x; worldStartY=world.y;
+        }else if(activePointers.size===2){
+            isMultiTouch=true; hasMoved=true;
+            const p=[...activePointers.values()];
+            initialPinchDist=Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+            initialScale=world.scale.x;
+        }
     });
 
     window.addEventListener("pointermove", e=>{
-        if(!dragging) return;
-        if(Math.hypot(e.clientX-startX, e.clientY-startY)>DRAG_THRESHOLD) moved=true;
-        if(!moved) return;
-        world.x+=e.clientX-lastX; world.y+=e.clientY-lastY;
-        lastX=e.clientX; lastY=e.clientY;
+        if(!activePointers.has(e.pointerId)) return;
+        activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+
+        if(activePointers.size===1 && !isMultiTouch){
+            const dx=e.clientX-dragStartX, dy=e.clientY-dragStartY;
+            if(Math.hypot(dx, dy)>DRAG_THRESHOLD) hasMoved=true;
+            if(hasMoved){
+                world.x=worldStartX+dx;
+                world.y=worldStartY+dy;
+            }
+        }else if(activePointers.size===2){
+            const p=[...activePointers.values()];
+            const dist=Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+            if(initialPinchDist>0){
+                const factor=dist/initialPinchDist;
+                const nextScale=Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, initialScale*factor));
+                const midX=(p[0].x+p[1].x)/2, midY=(p[0].y+p[1].y)/2;
+                const wx=(midX-world.x)/world.scale.x, wy=(midY-world.y)/world.scale.y;
+                world.scale.set(nextScale);
+                world.x=midX-wx*nextScale;
+                world.y=midY-wy*nextScale;
+            }
+        }
     });
 
-    window.addEventListener("pointerup", e=>{
-        if(!dragging) return;
-        dragging=false;
-        if(!moved) handleClick(e.clientX, e.clientY);
-    });
+    const handlePointerUp=(e)=>{
+        if(activePointers.has(e.pointerId)){
+            activePointers.delete(e.pointerId);
+            if(activePointers.size===0){
+                if(!hasMoved && !isMultiTouch){
+                    handleClick(e.clientX, e.clientY);
+                }
+                isMultiTouch=false;
+            }else if(activePointers.size===1){
+                const p=[...activePointers.values()][0];
+                dragStartX=p.x; dragStartY=p.y;
+                worldStartX=world.x; worldStartY=world.y;
+            }
+        }
+    };
+
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
 
     app.canvas.addEventListener("wheel", e=>{
         e.preventDefault();
