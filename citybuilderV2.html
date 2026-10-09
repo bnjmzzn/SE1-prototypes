@@ -12,12 +12,16 @@ canvas{touch-action:none;display:block}
 #drawer nav{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 button{padding:8px 12px;cursor:pointer;background:#fff;border:1px solid #999}
 button.active{background:#222;color:#fff}
+button:disabled{opacity:.5;cursor:default}
 #menu{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:8px;padding:8px;background:#fff;border:1px solid #999;z-index:5;max-width:90vw;overflow-x:auto}
+#pickBar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:8px;align-items:center;padding:8px;background:#fff;border:1px solid #0066ff;z-index:6}
+#adminTools{position:fixed;top:56px;left:16px;z-index:5;display:none}
 #info{position:fixed;top:16px;right:16px;display:none;padding:12px;background:#fff;border:1px solid #999;line-height:1.5;z-index:5}
 #userChip{position:fixed;top:16px;left:56px;z-index:5;display:none;padding:6px 10px;background:#fff;border:1px solid #999}
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:40}
-.modal-box{background:#fff;padding:20px;min-width:240px;line-height:1.6}
+.modal-box{background:#fff;padding:20px;min-width:240px;line-height:1.6;max-width:92vw}
 .modal-box input:not([type=checkbox]){width:100%;box-sizing:border-box;padding:6px;margin:8px 0}
+.modal-box label{display:block}
 .wide{width:min(680px,92vw);max-height:80vh;overflow:auto;box-sizing:border-box}
 .lb-list{list-style:none;padding:0;margin:8px 0}
 .lb-list li{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:4px 0}
@@ -43,7 +47,7 @@ th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left;white-space:nowra
 .pkgs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 #toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;display:none;z-index:50}
 @media(max-width:600px){
-    #menu{bottom:64px}
+    #menu,#pickBar{bottom:64px}
     #authBar{top:12px;left:12px}
     #userChip{top:12px;left:12px}
     #info{top:56px;right:12px;max-width:80vw}
@@ -56,6 +60,7 @@ th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left;white-space:nowra
     <button id="signInBtn">Sign In</button>
 </div>
 <div id="userChip"></div>
+<div id="adminTools"><button id="selectBtn">Select mode: off</button></div>
 <div id="toast"></div>
 
 <div id="drawer" class="collapsed">
@@ -79,6 +84,7 @@ th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left;white-space:nowra
 </div>
 
 <div id="menu"></div>
+<div id="pickBar"><span id="pickCount"></span><button id="pickRemove">Remove</button><button id="pickClear">Clear</button></div>
 <div id="info"></div>
 
 <div id="authModal" class="modal">
@@ -134,6 +140,8 @@ th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left;white-space:nowra
         <b id="reasonTitle"></b>
         <input id="amountInput" type="number" min="1" step="1" placeholder="Amount (g)">
         <input id="reasonInput" maxlength="120" placeholder="Reason (required)">
+        <label id="optRemoveWrap"><input type="checkbox" id="optRemove"> Remove all their buildings</label>
+        <label id="optRefundWrap"><input type="checkbox" id="optRefund"> Refund gold spent on removed buildings</label>
         <div class="err" id="reasonError"></div>
         <button id="reasonConfirm">Confirm</button>
         <button data-close="reasonModal">Cancel</button>
@@ -243,6 +251,7 @@ function refreshChrome(){
     chip.style.display=currentUser?"block":"none";
     if(currentUser) chip.innerHTML=`<b>${esc(currentUser.username)}</b> (${currentUser.role}) &middot; ${fmtGold(currentUser.gold)}`;
     document.querySelectorAll(".adminOnly").forEach(button=>button.style.display=isAdmin()?"inline-block":"none");
+    byId("adminTools").style.display=isAdmin()?"block":"none";
     checkLayout();
 }
 
@@ -255,8 +264,9 @@ const BUILDINGS=[
 ];
 
 const ROAD_TYPE=3, ROAM_TYPE=2, ROAD_RADIUS=4, ROAD_WIDTH=6, ROAD_COLOR=0x555555, ROAM_RADIUS=CELL*1.2, ROAM_SPEED=40, ROAM_PAUSE_MIN=0.4, ROAM_PAUSE_MAX=2;
-const roamers=[], entities=[], entityMap=new Map(), actions={};
-let selectedCell=null, pendingType=null, buildingCounter=0;
+const roamers=[], entities=[], entityMap=new Map(), actions={drawPicks(){}};
+const picked=new Set(), adminSelected=new Set();
+let selectedCell=null, pendingType=null, buildingCounter=0, selectMode=false;
 const cellKey=(x,y)=>y*GRID+x;
 
 function drawShape(g,s){
@@ -272,16 +282,33 @@ const createInfo=(type,name,ownerId)=>({name,ownerId,at:Date.now(),cost:BUILDING
 
 let clearSelection=()=>{};
 
+function updatePickBar(){
+    const show=isAdmin()&&picked.size>0;
+    byId("pickBar").style.display=show?"flex":"none";
+    byId("pickCount").textContent=picked.size+" selected";
+}
+
 let reasonHandler=null;
-function askReason(title,withAmount,onSubmit){
+function askReason(title,config,onSubmit){
     byId("reasonTitle").textContent=title;
-    byId("amountInput").style.display=withAmount?"block":"none";
+    byId("amountInput").style.display=config.amount?"block":"none";
     byId("amountInput").value="";
     byId("reasonInput").value="";
     byId("reasonError").textContent="";
+    byId("optRemove").checked=false;
+    byId("optRefund").checked=false;
+    byId("optRemoveWrap").style.display=config.ban?"block":"none";
+    byId("optRefundWrap").style.display=config.ban||config.refund?"block":"none";
+    byId("optRefund").disabled=!!config.ban;
     reasonHandler=onSubmit;
     toggleModal(byId("reasonModal"),true);
 }
+
+byId("optRemove").onchange=()=>{
+    const remove=byId("optRemove").checked;
+    byId("optRefund").disabled=!remove;
+    if(!remove) byId("optRefund").checked=false;
+};
 
 byId("reasonConfirm").onclick=()=>{
     const reason=byId("reasonInput").value.trim();
@@ -289,7 +316,8 @@ byId("reasonConfirm").onclick=()=>{
         byId("reasonError").textContent="Reason is required.";
         return;
     }
-    const error=reasonHandler(reason,Number(byId("amountInput").value));
+    const flags={remove:byId("optRemove").checked,refund:byId("optRefund").checked&&!byId("optRefund").disabled};
+    const error=reasonHandler(reason,Number(byId("amountInput").value),flags);
     if(error){
         byId("reasonError").textContent=error;
         return;
@@ -304,13 +332,39 @@ function afterAdminChange(){
     if(byId("admin").style.display==="flex") renderAdmin();
     refreshChrome();
     clearSelection();
+    actions.drawPicks();
+    updatePickBar();
 }
 
-function adminBan(userId,reason){
+function adminRemoveBuilding(entity,reason){
+    if(!entityMap.has(cellKey(entity.x,entity.y))) return "Building no longer exists.";
+    const snapshot={building_type:BUILDINGS[entity.type].name,x:entity.x,y:entity.y,gold_spent:entity.info.cost};
+    actions.removeEntity(entity);
+    logEvent("building_removed",currentUser.id,entity.info.ownerId,0,reason,snapshot);
+    return null;
+}
+
+function removeBuildings(list,reason,refund){
+    const refunds=new Map();
+    list.forEach(entity=>{
+        const cost=entity.info.cost, ownerId=entity.info.ownerId, buildingId=entity.info.id;
+        if(adminRemoveBuilding(entity,reason)) return;
+        adminSelected.delete(buildingId);
+        refunds.set(ownerId,(refunds.get(ownerId)||0)+cost);
+    });
+    if(!refund) return;
+    refunds.forEach((total,ownerId)=>{
+        userById(ownerId).gold+=total;
+        logEvent("gold_credited",currentUser.id,ownerId,total,"Refund for removed buildings: "+reason);
+    });
+}
+
+function adminBan(userId,reason,flags){
     const target=userById(userId);
     if(target.role!=="user") return "Only regular users can be banned.";
     target.role="banned";
     logEvent("user_banned",currentUser.id,target.id,0,reason);
+    if(flags.remove) removeBuildings(entities.filter(entity=>entity.info.ownerId===target.id),reason,flags.refund);
     return null;
 }
 
@@ -330,12 +384,11 @@ function adminCredit(userId,amount,reason){
     return null;
 }
 
-function adminRemoveBuilding(entity,reason){
-    if(!entityMap.has(cellKey(entity.x,entity.y))) return "Building no longer exists.";
-    const snapshot={building_type:BUILDINGS[entity.type].name,x:entity.x,y:entity.y,gold_spent:entity.info.cost};
-    actions.removeEntity(entity);
-    logEvent("building_removed",currentUser.id,entity.info.ownerId,0,reason,snapshot);
-    return null;
+function askRemove(list,title){
+    askReason(title,{refund:true},(reason,amount,flags)=>{
+        removeBuildings(list,reason,flags.refund);
+        return null;
+    });
 }
 
 function expireStaleTopups(){
@@ -399,9 +452,16 @@ function submitAuth(){
 
 function handleSignOut(){
     currentUser=null;
+    selectMode=false;
+    picked.clear();
+    adminSelected.clear();
+    byId("selectBtn").textContent="Select mode: off";
+    byId("selectBtn").classList.remove("active");
     document.querySelectorAll(".modal,#admin").forEach(element=>element.style.display="none");
     refreshChrome();
     clearSelection();
+    actions.drawPicks();
+    updatePickBar();
 }
 
 let topupFlow={view:"packages",topup:null,message:""};
@@ -510,7 +570,7 @@ function openLeaderboard(){
 }
 
 let adminTab="overview";
-const adminFilters={topupUser:"",topupStatus:"all",topupSort:"desc",logType:"all",userSearch:""};
+const adminFilters={topupUser:"",topupStatus:"all",topupSort:"desc",logType:"all",userSearch:"",buildingUser:"",buildingType:"all"};
 
 function openAdmin(){
     renderAdmin();
@@ -535,6 +595,12 @@ function overviewHtml(){
     return `<div class="cards">${cards.map(([label,value])=>`<div class="card">${label}<b>${value}</b></div>`).join("")}<div class="card">Buildings by type<br>${typeLines}</div></div><div class="ph">Earnings over time (image placeholder)</div><div class="ph">Buildings by type (image placeholder)</div>`;
 }
 
+function shownBuildings(){
+    return entities
+        .filter(entity=>nameOf(entity.info.ownerId).includes(adminFilters.buildingUser.toLowerCase())&&(adminFilters.buildingType==="all"||String(entity.type)===adminFilters.buildingType))
+        .sort((first,second)=>second.info.at-first.info.at);
+}
+
 function adminTableHtml(){
     if(adminTab==="topups"){
         const rows=topups
@@ -542,6 +608,10 @@ function adminTableHtml(){
             .sort((first,second)=>adminFilters.topupSort==="asc"?first.createdAt-second.createdAt:second.createdAt-first.createdAt)
             .map(topup=>[topup.id,esc(nameOf(topup.userId)),"PHP "+topup.php,topup.status,fmtDate(topup.createdAt)]);
         return table(["ID","User","Amount","Status","Created"],rows);
+    }
+    if(adminTab==="buildings"){
+        const rows=shownBuildings().map(entity=>[`<input type="checkbox" data-bsel="${entity.info.id}" ${adminSelected.has(entity.info.id)?"checked":""}>`,esc(entity.info.name),BUILDINGS[entity.type].name,esc(nameOf(entity.info.ownerId)),entity.x+", "+entity.y,fmtGold(entity.info.cost),fmtDate(entity.info.at),`<button data-do="rmb" data-bid="${entity.info.id}">Remove</button>`]);
+        return table([`<input type="checkbox" id="selAll" data-all="1">`,"Name","Type","Owner","Cell","Spent","Placed","Action"],rows);
     }
     if(adminTab==="logs"){
         const rows=events
@@ -562,13 +632,25 @@ function adminTableHtml(){
     return table(["Username","Role","Gold","Joined","Actions"],rows);
 }
 
+function syncBulk(){
+    const button=byId("bulkBtn");
+    if(!button) return;
+    button.textContent="Remove selected ("+adminSelected.size+")";
+    button.disabled=adminSelected.size===0;
+    const selectAll=byId("selAll");
+    if(!selectAll) return;
+    const shown=shownBuildings();
+    selectAll.checked=shown.length>0&&shown.every(entity=>adminSelected.has(entity.info.id));
+}
+
 function renderAdminTable(){
     byId("adminTable").innerHTML=adminTableHtml();
+    if(adminTab==="buildings") syncBulk();
 }
 
 function renderAdmin(){
     expireStaleTopups();
-    const tabs=[["overview","Overview"],["topups","Topups"],["logs","Moderation Logs"],["users","Users"]];
+    const tabs=[["overview","Overview"],["topups","Topups"],["buildings","Buildings"],["logs","Moderation Logs"],["users","Users"]];
     byId("adminTabs").innerHTML=tabs.map(([key,label])=>`<button data-atab="${key}" class="${key===adminTab?"active":""}">${label}</button>`).join("");
     const body=byId("adminBody");
     if(adminTab==="overview"){
@@ -577,6 +659,7 @@ function renderAdmin(){
     }
     const controls={
         topups:`<div class="filters"><input data-filter="topupUser" placeholder="Filter by username"><select data-filter="topupStatus"><option value="all">All statuses</option><option>pending</option><option>completed</option><option>failed</option><option>expired</option></select><select data-filter="topupSort"><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>`,
+        buildings:`<div class="filters"><input data-filter="buildingUser" placeholder="Filter by owner"><select data-filter="buildingType"><option value="all">All types</option>${BUILDINGS.map((building,index)=>`<option value="${index}">${building.name}</option>`).join("")}</select><button id="bulkBtn" data-do="rmsel">Remove selected (0)</button></div>`,
         logs:`<div class="filters"><select data-filter="logType"><option value="all">All moderation actions</option>${MOD_TYPES.map(type=>`<option>${type}</option>`).join("")}</select></div>`,
         users:`<div class="filters"><input data-filter="userSearch" placeholder="Search username"></div>`
     };
@@ -601,13 +684,52 @@ byId("adminBody").addEventListener("input",event=>{
     renderAdminTable();
 });
 
+byId("adminBody").addEventListener("change",event=>{
+    const target=event.target;
+    if(target.dataset.bsel){
+        const buildingId=Number(target.dataset.bsel);
+        if(target.checked){
+            adminSelected.add(buildingId);
+        }else{
+            adminSelected.delete(buildingId);
+        }
+        syncBulk();
+        return;
+    }
+    if(target.dataset.all){
+        shownBuildings().forEach(entity=>{
+            if(target.checked){
+                adminSelected.add(entity.info.id);
+            }else{
+                adminSelected.delete(entity.info.id);
+            }
+        });
+        renderAdminTable();
+    }
+});
+
 byId("adminBody").addEventListener("click",event=>{
     const button=event.target.closest("button");
     if(!button||!button.dataset.do) return;
+    const action=button.dataset.do;
+    if(action==="rmb"){
+        const entity=entities.find(item=>String(item.info.id)===button.dataset.bid);
+        askRemove([entity],"Remove "+entity.info.name);
+        return;
+    }
+    if(action==="rmsel"){
+        const targets=entities.filter(entity=>adminSelected.has(entity.info.id));
+        if(!targets.length) return;
+        askRemove(targets,"Remove "+targets.length+" building(s)");
+        return;
+    }
     const user=userById(button.dataset.user);
-    if(button.dataset.do==="ban") askReason("Ban "+user.username,false,reason=>adminBan(user.id,reason));
-    if(button.dataset.do==="credit") askReason("Credit gold to "+user.username,true,(reason,amount)=>adminCredit(user.id,amount,reason));
-    if(button.dataset.do==="unban"){
+    if(action==="ban"){
+        const owned=entities.filter(entity=>entity.info.ownerId===user.id).length;
+        askReason("Ban "+user.username+" ("+owned+" buildings)",{ban:true},(reason,amount,flags)=>adminBan(user.id,reason,flags));
+    }
+    if(action==="credit") askReason("Credit gold to "+user.username,{amount:true},(reason,amount)=>adminCredit(user.id,amount,reason));
+    if(action==="unban"){
         const error=adminUnban(user.id);
         toast(error||"Unbanned "+user.username);
         afterAdminChange();
@@ -625,6 +747,24 @@ document.addEventListener("click",event=>{
 
 byId("signInBtn").onclick=openAuth;
 byId("authSubmit").onclick=submitAuth;
+
+byId("selectBtn").onclick=()=>{
+    selectMode=!selectMode;
+    byId("selectBtn").textContent="Select mode: "+(selectMode?"on":"off");
+    byId("selectBtn").classList.toggle("active",selectMode);
+    clearSelection();
+};
+
+byId("pickClear").onclick=()=>{
+    picked.clear();
+    actions.drawPicks();
+    updatePickBar();
+};
+
+byId("pickRemove").onclick=()=>{
+    if(!picked.size) return;
+    askRemove([...picked],"Remove "+picked.size+" building(s)");
+};
 
 async function main(){
     const app=new PIXI.Application();
@@ -648,9 +788,20 @@ async function main(){
     const roadGraphics=new PIXI.Graphics(), entityLayer=new PIXI.Container(), roamerLayer=new PIXI.Container();
     world.addChild(roadGraphics, entityLayer, roamerLayer);
 
+    const pickLayer=new PIXI.Graphics();
+    world.addChild(pickLayer);
+
     const highlight=new PIXI.Graphics().rect(0,0,CELL,CELL).stroke({width:3,color:0xff0000});
     highlight.visible=false;
     world.addChild(highlight);
+
+    actions.drawPicks=()=>{
+        pickLayer.clear();
+        if(!picked.size) return;
+        picked.forEach(entity=>pickLayer.rect(entity.x*CELL+2,entity.y*CELL+2,CELL-4,CELL-4));
+        pickLayer.fill({color:0x0066ff,alpha:0.3});
+        pickLayer.stroke({width:3,color:0x0066ff});
+    };
 
     const textures=BUILDINGS.map(b=>{
         const g=new PIXI.Graphics();
@@ -673,6 +824,7 @@ async function main(){
     }
 
     actions.removeEntity=entity=>{
+        picked.delete(entity);
         entityLayer.removeChild(entity.sprite);
         entity.sprite.destroy();
         entities.splice(entities.indexOf(entity),1);
@@ -762,7 +914,7 @@ async function main(){
         infoPanel.innerHTML=`<b>${esc(entity.info.name)}</b><br>Type: ${b.name}<br>Placed by: ${esc(nameOf(entity.info.ownerId))}<br>Date: ${fmtDate(entity.info.at)}<br>Cost: ${fmtGold(entity.info.cost)}<br>Cell: ${entity.x}, ${entity.y}${removeButton}`;
         infoPanel.style.display="block";
         if(!isAdmin()) return;
-        byId("removeBtn").onclick=()=>askReason("Remove "+entity.info.name,false,reason=>adminRemoveBuilding(entity,reason));
+        byId("removeBtn").onclick=()=>askRemove([entity],"Remove "+entity.info.name);
     }
 
     function openConfirm(t){
@@ -813,11 +965,26 @@ async function main(){
         menu.style.display="none"; infoPanel.style.display="none";
     };
 
-    function handleClick(sx,sy){
+    function handleClick(sx,sy,multi){
         const wx=(sx-world.x)/world.scale.x, wy=(sy-world.y)/world.scale.y;
         const cx=Math.floor(wx/CELL), cy=Math.floor(wy/CELL);
+        const inBounds=cx>=0&&cy>=0&&cx<GRID&&cy<GRID;
+        if(isAdmin()&&(selectMode||multi)){
+            if(!inBounds) return;
+            const target=entityMap.get(cellKey(cx,cy));
+            if(!target) return;
+            if(picked.has(target)){
+                picked.delete(target);
+            }else{
+                picked.add(target);
+            }
+            clearSelection();
+            actions.drawPicks();
+            updatePickBar();
+            return;
+        }
         clearSelection();
-        if(cx<0||cy<0||cx>=GRID||cy>=GRID) return;
+        if(!inBounds) return;
         selectedCell={x:cx,y:cy};
         highlight.x=cx*CELL; highlight.y=cy*CELL; highlight.visible=true;
         const existing=entityMap.get(cellKey(cx,cy));
@@ -873,7 +1040,7 @@ async function main(){
             activePointers.delete(e.pointerId);
             if(activePointers.size===0){
                 if(!hasMoved && !isMultiTouch){
-                    handleClick(e.clientX, e.clientY);
+                    handleClick(e.clientX, e.clientY, e.shiftKey||e.ctrlKey);
                 }
                 isMultiTouch=false;
             }else if(activePointers.size===1){
