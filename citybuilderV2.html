@@ -4,29 +4,49 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-body{margin:0;overflow:hidden;background:#fff;font-family:sans-serif;touch-action:none}
+body{margin:0;overflow:hidden;background:#fff;font-family:sans-serif}
+canvas{touch-action:none;display:block}
 #drawer{position:fixed;top:0;left:0;bottom:0;width:200px;background:#f4f4f4;border-right:1px solid #999;transition:transform .2s;z-index:10;display:none;padding:16px;box-sizing:border-box}
 #drawer.collapsed{transform:translateX(-200px)}
 #toggle{position:absolute;top:8px;right:-34px;width:34px;height:34px;cursor:pointer;border:1px solid #999;background:#f4f4f4}
 #drawer nav{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 button{padding:8px 12px;cursor:pointer;background:#fff;border:1px solid #999}
+button.active{background:#222;color:#fff}
 #menu{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:8px;padding:8px;background:#fff;border:1px solid #999;z-index:5;max-width:90vw;overflow-x:auto}
 #info{position:fixed;top:16px;right:16px;display:none;padding:12px;background:#fff;border:1px solid #999;line-height:1.5;z-index:5}
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:20}
+#userChip{position:fixed;top:16px;left:56px;z-index:5;display:none;padding:6px 10px;background:#fff;border:1px solid #999}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:40}
 .modal-box{background:#fff;padding:20px;min-width:240px;line-height:1.6}
-.modal-box input{width:100%;box-sizing:border-box;padding:6px;margin:8px 0}
-.qr-placeholder{width:140px;height:140px;background:#000;margin:12px auto}
+.modal-box input:not([type=checkbox]){width:100%;box-sizing:border-box;padding:6px;margin:8px 0}
+.wide{width:min(680px,92vw);max-height:80vh;overflow:auto;box-sizing:border-box}
 .lb-list{list-style:none;padding:0;margin:8px 0}
 .lb-list li{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:4px 0}
 #bottomNav{position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:1px solid #999;display:none;justify-content:space-around;align-items:center;z-index:9}
-#bottomNav button{padding:6px 10px;font-size:12px}
+#bottomNav button{padding:6px 6px;font-size:11px}
+#admin{position:fixed;inset:0;background:#fff;z-index:30;display:none;flex-direction:column}
+#adminHead{display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid #999;flex-wrap:wrap}
+#adminTabs{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+#adminBody{flex:1;overflow:auto;padding:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.card{border:1px solid #999;padding:12px}
+.card b{display:block;font-size:20px}
+.ph{border:2px dashed #999;height:180px;display:flex;align-items:center;justify-content:center;color:#777;margin-bottom:16px}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filters input,.filters select{padding:6px}
+.tabs{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left;white-space:nowrap}
+.err{color:#c0392b;min-height:18px;font-size:13px}
+.banner{background:#fdecea;border:1px solid #c0392b;padding:8px;margin:8px 0;font-size:13px}
+.info{background:#eef4ff;border:1px solid #4a90d9;padding:8px;margin:8px 0;font-size:13px}
+.pkgs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+#toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;display:none;z-index:50}
 @media(max-width:600px){
-  #menu{bottom:64px}
-  #drawer button#toggle{display:none}
-  #drawer{width:100%;bottom:auto;height:auto;border-right:none;border-bottom:1px solid #999}
-  #drawer.collapsed{transform:translateY(-100%)}
-  #authBar{top:12px;left:12px}
-  #info{top:12px;right:12px;max-width:80vw}
+    #menu{bottom:64px}
+    #authBar{top:12px;left:12px}
+    #userChip{top:12px;left:12px}
+    #info{top:56px;right:12px;max-width:80vw}
 }
 </style>
 </head>
@@ -35,128 +55,196 @@ button{padding:8px 12px;cursor:pointer;background:#fff;border:1px solid #999}
 <div id="authBar" style="position:fixed;top:16px;left:16px;z-index:5;">
     <button id="signInBtn">Sign In</button>
 </div>
+<div id="userChip"></div>
+<div id="toast"></div>
 
 <div id="drawer" class="collapsed">
     <button id="toggle">&#9776;</button>
     <div style="font-weight:bold;margin-bottom:8px;">Menu</div>
-    <div>Coins: <span id="coinDisplay">1,250</span></div>
     <nav>
-        <button id="dashboardBtn">Dashboard</button>
-        <button id="topupBtn">Top Up</button>
-        <button id="leaderboardBtn">Leaderboard</button>
-        <button id="signOutBtn">Sign Out</button>
+        <button data-act="dashboard">Dashboard</button>
+        <button data-act="topup">Top Up</button>
+        <button data-act="leaderboard">Leaderboard</button>
+        <button data-act="admin" class="adminOnly">Admin Panel</button>
+        <button data-act="signout">Sign Out</button>
     </nav>
 </div>
 
 <div id="bottomNav">
-    <button id="bnDashboard">Dashboard</button>
-    <button id="bnTopup">Top Up</button>
-    <button id="bnLeaderboard">Leaderboard</button>
-    <button id="bnSignOut">Sign Out</button>
+    <button data-act="dashboard">Dashboard</button>
+    <button data-act="topup">Top Up</button>
+    <button data-act="leaderboard">Leaderboard</button>
+    <button data-act="admin" class="adminOnly">Admin</button>
+    <button data-act="signout">Sign Out</button>
 </div>
 
 <div id="menu"></div>
 <div id="info"></div>
+
+<div id="authModal" class="modal">
+    <div class="modal-box">
+        <b>Sign In</b>
+        <input id="authUser" placeholder="Username" maxlength="20" autocomplete="off">
+        <input id="authPass" type="password" placeholder="Password" maxlength="64">
+        <label><input type="checkbox" id="authCaptcha"> I am not a robot (hCaptcha mock)</label>
+        <div style="font-size:12px;color:#666">An unknown username creates a new account.</div>
+        <div class="err" id="authError"></div>
+        <button id="authSubmit">Continue</button>
+        <button data-close="authModal">Cancel</button>
+    </div>
+</div>
 
 <div id="modal" class="modal">
     <div class="modal-box">
         <b>Place building?</b>
         <div id="summary"></div>
         <input id="nameInput" maxlength="24">
+        <div class="err" id="confirmError"></div>
         <button id="confirm">Confirm</button>
         <button id="cancel">Cancel</button>
     </div>
 </div>
 
 <div id="dashboardModal" class="modal">
-    <div class="modal-box">
+    <div class="modal-box wide">
         <b>Dashboard</b>
-        <div>Welcome.<br>Total Coins: 1,250<br>Buildings Owned: <span id="ownedCount">0</span></div>
-        <button id="closeDashboard">Close</button>
+        <div id="dashBody"></div>
+        <button data-close="dashboardModal">Close</button>
     </div>
 </div>
 
 <div id="topupModal" class="modal">
-    <div class="modal-box" style="text-align:center;">
-        <b>Top Up Coins</b>
-        <div>Scan QR code:</div>
-        <div class="qr-placeholder"></div>
-        <button id="closeTopup">Close</button>
+    <div class="modal-box wide">
+        <b>Top Up Gold</b>
+        <div id="topupBody"></div>
+        <button data-close="topupModal">Close</button>
     </div>
 </div>
 
 <div id="leaderboardModal" class="modal">
     <div class="modal-box">
-        <b>Leaderboard</b>
-        <ul class="lb-list">
-            <li><span>1. ApexBuilder</span> <span>12,450</span></li>
-            <li><span>2. CityPlanner</span> <span>9,820</span></li>
-            <li><span>3. UrbanLegend</span> <span>8,100</span></li>
-            <li><span>4. GridMaster</span> <span>6,400</span></li>
-            <li><span>5. PixelPioneer</span> <span>4,250</span></li>
-        </ul>
-        <button id="closeLeaderboard">Close</button>
+        <b>Leaderboard (gold spent on buildings)</b>
+        <ul class="lb-list" id="lbList"></ul>
+        <button data-close="leaderboardModal">Close</button>
     </div>
+</div>
+
+<div id="reasonModal" class="modal">
+    <div class="modal-box">
+        <b id="reasonTitle"></b>
+        <input id="amountInput" type="number" min="1" step="1" placeholder="Amount (g)">
+        <input id="reasonInput" maxlength="120" placeholder="Reason (required)">
+        <div class="err" id="reasonError"></div>
+        <button id="reasonConfirm">Confirm</button>
+        <button data-close="reasonModal">Cancel</button>
+    </div>
+</div>
+
+<div id="admin">
+    <div id="adminHead">
+        <b>Admin Panel</b>
+        <div id="adminTabs"></div>
+        <button data-close="admin">Back to canvas</button>
+    </div>
+    <div id="adminBody"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
 <script>
-const GRID=100, CELL=48, CENTER_START=40, CENTER_END=60, MIN_ZOOM=0.2, MAX_ZOOM=4, DRAG_THRESHOLD=5;
-let PLAYER_NAME="Guest", SYSTEM_NAME="System", isSignedIn=false;
+const GRID=100, CELL=48, CENTER_START=40, CENTER_END=60, MIN_ZOOM=0.2, MAX_ZOOM=4, DRAG_THRESHOLD=5, DAY=86400000, TOPUP_TTL=1800000;
+const PACKAGES=[50,150,300,500,1000];
+const MOD_TYPES=["user_banned","user_unbanned","building_removed","gold_credited"];
+const byId=id=>document.getElementById(id);
+const fmtGold=amount=>amount.toLocaleString()+" g";
+const fmtDate=timestamp=>new Date(timestamp).toLocaleString();
+const signed=amount=>(amount>0?"+":"")+amount.toLocaleString()+" g";
+const newest=(first,second)=>second.at-first.at;
+const esc=text=>String(text).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+const detail=data=>data?esc(Object.entries(data).map(([key,value])=>key+"="+value).join(", ")):"";
+const toggleModal=(element,show)=>element.style.display=show?"flex":"none";
 
-const drawer=document.getElementById("drawer"), signInBtn=document.getElementById("signInBtn"), signOutBtn=document.getElementById("signOutBtn"), bottomNav=document.getElementById("bottomNav");
-const dashboardBtn=document.getElementById("dashboardBtn"), topupBtn=document.getElementById("topupBtn"), leaderboardBtn=document.getElementById("leaderboardBtn");
-const dashboardModal=document.getElementById("dashboardModal"), topupModal=document.getElementById("topupModal"), leaderboardModal=document.getElementById("leaderboardModal");
+function table(headers,rows){
+    if(!rows.length) return "<p>No records.</p>";
+    return `<div class="scroll"><table><tr>${headers.map(header=>`<th>${header}</th>`).join("")}</tr>${rows.map(row=>`<tr>${row.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div>`;
+}
+
+let toastTimer=null;
+function toast(message){
+    const toastEl=byId("toast");
+    toastEl.textContent=message;
+    toastEl.style.display="block";
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>toastEl.style.display="none",2500);
+}
+
+const users=[], topups=[], events=[];
+let idSeq=0;
+const newId=prefix=>prefix+(++idSeq);
+const findUser=username=>users.find(user=>user.username===username);
+const userById=id=>users.find(user=>user.id===id);
+const nameOf=id=>{
+    const user=userById(id);
+    return user?user.username:"system";
+};
+
+function addUser(username,password,gold,role){
+    const user={id:newId("u"),username,password,gold,role,createdAt:Date.now()};
+    users.push(user);
+    return user;
+}
+
+function logEvent(type,actorId,targetId,delta,reason,data,at){
+    events.push({id:newId("e"),type,actorId,targetId,delta:delta||0,reason:reason||null,data:data||null,at:at||Date.now()});
+}
+
+const adminUser=addUser("admin","admin",0,"admin");
+const seedUsers=["apexbuilder","cityplanner","urbanlegend","gridmaster","pixelpioneer","trollmaster"].map(name=>addUser(name,"password123",Math.floor(Math.random()*8)*50,name==="trollmaster"?"banned":"user"));
+
+seedUsers.forEach(user=>{
+    const count=2+Math.floor(Math.random()*3);
+    for(let index=0;index<count;index++){
+        const amount=PACKAGES[Math.floor(Math.random()*PACKAGES.length)];
+        const roll=Math.random();
+        const status=roll<0.7?"completed":roll<0.85?"failed":"expired";
+        const createdAt=Date.now()-Math.random()*14*DAY;
+        const topup={id:newId("t"),userId:user.id,php:amount,status,createdAt,expiresAt:createdAt+TOPUP_TTL,updatedAt:createdAt,ref:"cs_"+Math.random().toString(36).slice(2,10)};
+        topups.push(topup);
+        if(status==="completed") logEvent("topup_completed",null,user.id,amount,null,{topup_id:topup.id,php_amount:amount},createdAt);
+    }
+});
+
+const trollUser=findUser("trollmaster"), plannerUser=findUser("cityplanner");
+logEvent("building_removed",adminUser.id,trollUser.id,0,"Spam placement",{building_type:"Temple",x:50,y:50,gold_spent:500},Date.now()-5*DAY);
+logEvent("user_banned",adminUser.id,trollUser.id,0,"Repeated spam placement",null,Date.now()-5*DAY+60000);
+logEvent("gold_credited",adminUser.id,plannerUser.id,100,"Refund for building removed by mistake",null,Date.now()-2*DAY);
+plannerUser.gold+=100;
+
+let currentUser=null;
+const isAdmin=()=>currentUser&&currentUser.role==="admin";
+const isBanned=()=>currentUser&&currentUser.role==="banned";
+
+const drawer=byId("drawer"), bottomNav=byId("bottomNav");
 
 function checkLayout(){
     const isMobile=window.innerWidth<=600;
-    if(isSignedIn){
-        if(isMobile){
-            drawer.style.display="none";
-            bottomNav.style.display="flex";
-        }else{
-            drawer.style.display="block";
-            bottomNav.style.display="none";
-        }
-    }else{
+    if(!currentUser){
         drawer.style.display="none";
         bottomNav.style.display="none";
+        return;
     }
+    drawer.style.display=isMobile?"none":"block";
+    bottomNav.style.display=isMobile?"flex":"none";
 }
 window.addEventListener("resize", checkLayout);
 
-signInBtn.onclick=()=>{
-    isSignedIn=true; PLAYER_NAME="Player1";
-    signInBtn.style.display="none";
+function refreshChrome(){
+    byId("signInBtn").style.display=currentUser?"none":"inline-block";
+    const chip=byId("userChip");
+    chip.style.display=currentUser?"block":"none";
+    if(currentUser) chip.innerHTML=`<b>${esc(currentUser.username)}</b> (${currentUser.role}) &middot; ${fmtGold(currentUser.gold)}`;
+    document.querySelectorAll(".adminOnly").forEach(button=>button.style.display=isAdmin()?"inline-block":"none");
     checkLayout();
-};
-
-const handleSignOut=()=>{
-    isSignedIn=false; PLAYER_NAME="Guest";
-    signInBtn.style.display="inline-block";
-    checkLayout();
-    clearSelection();
-};
-signOutBtn.onclick=handleSignOut;
-document.getElementById("bnSignOut").onclick=handleSignOut;
-
-const toggleModal=(m, show)=>m.style.display=show?"flex":"none";
-
-const handleDashboard=()=>{
-    document.getElementById("ownedCount").textContent=entities.filter(e=>e.info.placedBy===PLAYER_NAME).length;
-    toggleModal(dashboardModal, true);
-};
-dashboardBtn.onclick=handleDashboard;
-document.getElementById("bnDashboard").onclick=handleDashboard;
-document.getElementById("closeDashboard").onclick=()=>toggleModal(dashboardModal, false);
-
-topupBtn.onclick=()=>toggleModal(topupModal, true);
-document.getElementById("bnTopup").onclick=()=>toggleModal(topupModal, true);
-document.getElementById("closeTopup").onclick=()=>toggleModal(topupModal, false);
-
-leaderboardBtn.onclick=()=>toggleModal(leaderboardModal, true);
-document.getElementById("bnLeaderboard").onclick=()=>toggleModal(leaderboardModal, true);
-document.getElementById("closeLeaderboard").onclick=()=>toggleModal(leaderboardModal, false);
+}
 
 const BUILDINGS=[
     {name:"House",color:0x4a90d9,shape:"square",cost:100},
@@ -167,9 +255,8 @@ const BUILDINGS=[
 ];
 
 const ROAD_TYPE=3, ROAM_TYPE=2, ROAD_RADIUS=4, ROAD_WIDTH=6, ROAD_COLOR=0x555555, ROAM_RADIUS=CELL*1.2, ROAM_SPEED=40, ROAM_PAUSE_MIN=0.4, ROAM_PAUSE_MAX=2;
-const roamers=[], entities=[], entityMap=new Map();
+const roamers=[], entities=[], entityMap=new Map(), actions={};
 let selectedCell=null, pendingType=null, buildingCounter=0;
-
 const cellKey=(x,y)=>y*GRID+x;
 
 function drawShape(g,s){
@@ -181,16 +268,370 @@ function drawShape(g,s){
     g.poly([p+8,p,CELL-p-8,p,CELL-p,h,CELL-p-8,CELL-p,p+8,CELL-p,p,h]);
 }
 
-const createInfo=(t,n,p)=>({name:n,placedBy:p,date:new Date().toLocaleDateString(),cost:BUILDINGS[t].cost,id:++buildingCounter});
+const createInfo=(type,name,ownerId)=>({name,ownerId,at:Date.now(),cost:BUILDINGS[type].cost,id:++buildingCounter});
 
 let clearSelection=()=>{};
+
+let reasonHandler=null;
+function askReason(title,withAmount,onSubmit){
+    byId("reasonTitle").textContent=title;
+    byId("amountInput").style.display=withAmount?"block":"none";
+    byId("amountInput").value="";
+    byId("reasonInput").value="";
+    byId("reasonError").textContent="";
+    reasonHandler=onSubmit;
+    toggleModal(byId("reasonModal"),true);
+}
+
+byId("reasonConfirm").onclick=()=>{
+    const reason=byId("reasonInput").value.trim();
+    if(!reason){
+        byId("reasonError").textContent="Reason is required.";
+        return;
+    }
+    const error=reasonHandler(reason,Number(byId("amountInput").value));
+    if(error){
+        byId("reasonError").textContent=error;
+        return;
+    }
+    toggleModal(byId("reasonModal"),false);
+    reasonHandler=null;
+    toast("Done");
+    afterAdminChange();
+};
+
+function afterAdminChange(){
+    if(byId("admin").style.display==="flex") renderAdmin();
+    refreshChrome();
+    clearSelection();
+}
+
+function adminBan(userId,reason){
+    const target=userById(userId);
+    if(target.role!=="user") return "Only regular users can be banned.";
+    target.role="banned";
+    logEvent("user_banned",currentUser.id,target.id,0,reason);
+    return null;
+}
+
+function adminUnban(userId){
+    const target=userById(userId);
+    if(target.role!=="banned") return "User is not banned.";
+    target.role="user";
+    logEvent("user_unbanned",currentUser.id,target.id,0,null);
+    return null;
+}
+
+function adminCredit(userId,amount,reason){
+    if(!Number.isInteger(amount)||amount<=0) return "Amount must be a positive whole number.";
+    const target=userById(userId);
+    target.gold+=amount;
+    logEvent("gold_credited",currentUser.id,target.id,amount,reason);
+    return null;
+}
+
+function adminRemoveBuilding(entity,reason){
+    if(!entityMap.has(cellKey(entity.x,entity.y))) return "Building no longer exists.";
+    const snapshot={building_type:BUILDINGS[entity.type].name,x:entity.x,y:entity.y,gold_spent:entity.info.cost};
+    actions.removeEntity(entity);
+    logEvent("building_removed",currentUser.id,entity.info.ownerId,0,reason,snapshot);
+    return null;
+}
+
+function expireStaleTopups(){
+    const now=Date.now();
+    topups.forEach(topup=>{
+        if(topup.status!=="pending"||topup.expiresAt>=now) return;
+        topup.status="expired";
+        topup.updatedAt=now;
+    });
+}
+
+function webhook(topupId){
+    const topup=topups.find(item=>item.id===topupId);
+    if(topup.status==="completed"||topup.status==="failed") return "duplicate";
+    topup.status="completed";
+    topup.updatedAt=Date.now();
+    const owner=userById(topup.userId);
+    owner.gold+=topup.php;
+    logEvent("topup_completed",null,owner.id,topup.php,null,{topup_id:topup.id,php_amount:topup.php});
+    return "completed";
+}
+
+function openAuth(){
+    byId("authUser").value="";
+    byId("authPass").value="";
+    byId("authCaptcha").checked=false;
+    byId("authError").textContent="";
+    toggleModal(byId("authModal"),true);
+}
+
+function submitAuth(){
+    const username=byId("authUser").value.trim().toLowerCase();
+    const password=byId("authPass").value;
+    const error=byId("authError");
+    if(!byId("authCaptcha").checked){
+        error.textContent="Please complete the captcha.";
+        return;
+    }
+    const existing=findUser(username);
+    if(existing){
+        if(existing.password!==password){
+            error.textContent="Invalid credentials.";
+            return;
+        }
+        currentUser=existing;
+    }else{
+        if(!/^[a-z0-9_]{3,20}$/.test(username)){
+            error.textContent="Username: 3 to 20 characters, a-z, 0-9, underscore.";
+            return;
+        }
+        if(password.length<8||password.length>64){
+            error.textContent="Password: 8 to 64 characters.";
+            return;
+        }
+        currentUser=addUser(username,password,0,"user");
+        toast("Account created");
+    }
+    toggleModal(byId("authModal"),false);
+    refreshChrome();
+}
+
+function handleSignOut(){
+    currentUser=null;
+    document.querySelectorAll(".modal,#admin").forEach(element=>element.style.display="none");
+    refreshChrome();
+    clearSelection();
+}
+
+let topupFlow={view:"packages",topup:null,message:""};
+
+function openTopup(){
+    expireStaleTopups();
+    const pending=topups.find(item=>item.userId===currentUser.id&&item.status==="pending");
+    topupFlow=pending?{view:"checkout",topup:pending,message:"You have a pending checkout."}:{view:"packages",topup:null,message:""};
+    renderTopup();
+    toggleModal(byId("topupModal"),true);
+}
+
+function renderTopup(){
+    const body=byId("topupBody");
+    const message=topupFlow.message?`<div class="info">${topupFlow.message}</div>`:"";
+    const banned=isBanned()?`<div class="banner">Your account is banned. Topups are disabled.</div>`:"";
+    if(topupFlow.view==="packages"){
+        body.innerHTML=`${banned}${message}<div>Select a package (1 g = PHP 1)</div><div class="pkgs">${PACKAGES.map(amount=>`<button data-pkg="${amount}">${fmtGold(amount)}<br>PHP ${amount}</button>`).join("")}</div><label><input type="checkbox" id="topupCaptcha"> I am not a robot (hCaptcha mock)</label><div class="err" id="topupError"></div>`;
+        return;
+    }
+    const topup=topupFlow.topup;
+    if(topupFlow.view==="checkout"){
+        body.innerHTML=`${message}<b>PayRex Checkout (sandbox)</b><br>Ref: ${topup.ref}<br>Amount: PHP ${topup.php} for ${fmtGold(topup.php)}<br>Expires: ${fmtDate(topup.expiresAt)}<br><br><button data-tp="pay">Pay with GCash (simulate)</button>`;
+        return;
+    }
+    body.innerHTML=`${message}<b>Topup ${topup.id}: ${topup.status}</b><br><br><button data-tp="replay">Replay webhook (duplicate test)</button> <button data-tp="again">New topup</button>`;
+}
+
+function createTopup(amount){
+    const error=byId("topupError");
+    if(isBanned()){
+        error.textContent="Banned accounts cannot create topups.";
+        return;
+    }
+    if(!byId("topupCaptcha").checked){
+        error.textContent="Please complete the captcha.";
+        return;
+    }
+    expireStaleTopups();
+    let topup=topups.find(item=>item.userId===currentUser.id&&item.status==="pending");
+    let message="Checkout created.";
+    if(topup){
+        message="You already have a pending checkout. Showing it.";
+    }else{
+        const now=Date.now();
+        topup={id:newId("t"),userId:currentUser.id,php:amount,status:"pending",createdAt:now,expiresAt:now+TOPUP_TTL,updatedAt:now,ref:"cs_"+Math.random().toString(36).slice(2,10)};
+        topups.push(topup);
+    }
+    topupFlow={view:"checkout",topup,message};
+    renderTopup();
+}
+
+byId("topupBody").onclick=event=>{
+    const button=event.target.closest("button");
+    if(!button) return;
+    if(button.dataset.pkg) return createTopup(Number(button.dataset.pkg));
+    const topup=topupFlow.topup;
+    if(button.dataset.tp==="pay"){
+        webhook(topup.id);
+        topupFlow={view:"done",topup,message:`Payment confirmed. ${fmtGold(topup.php)} credited.`};
+        refreshChrome();
+    }
+    if(button.dataset.tp==="replay"){
+        const result=webhook(topup.id);
+        topupFlow.message=result==="duplicate"?"Duplicate webhook acknowledged. No changes made.":"Credited.";
+    }
+    if(button.dataset.tp==="again") topupFlow={view:"packages",topup:null,message:""};
+    renderTopup();
+};
+
+let dashTab="gold";
+function openDashboard(){
+    dashTab=isBanned()?"moderation":"gold";
+    renderDashboard();
+    toggleModal(byId("dashboardModal"),true);
+}
+
+function renderDashboard(){
+    const me=currentUser.id;
+    const mine=events.filter(event=>event.targetId===me).sort(newest);
+    const ownedList=entities.filter(entity=>entity.info.ownerId===me);
+    const views={
+        gold:()=>table(["Date","Type","Change","Details"],mine.filter(event=>event.delta!==0).map(event=>[fmtDate(event.at),event.type,signed(event.delta),detail(event.data)||esc(event.reason||"")])),
+        moderation:()=>table(["Date","Type","By","Reason","Details"],mine.filter(event=>MOD_TYPES.includes(event.type)).map(event=>[fmtDate(event.at),event.type,esc(nameOf(event.actorId)),esc(event.reason||""),detail(event.data)])),
+        buildings:()=>table(["Name","Type","Cell","Spent","Placed"],ownedList.map(entity=>[esc(entity.info.name),BUILDINGS[entity.type].name,entity.x+", "+entity.y,fmtGold(entity.info.cost),fmtDate(entity.info.at)])),
+        topups:()=>table(["ID","PHP","Status","Created"],topups.filter(topup=>topup.userId===me).sort((first,second)=>second.createdAt-first.createdAt).map(topup=>[topup.id,topup.php,topup.status,fmtDate(topup.createdAt)]))
+    };
+    const labels={gold:"Gold",moderation:"Moderation",buildings:"Buildings",topups:"Topups"};
+    const banner=isBanned()?`<div class="banner">Your account is banned. You can view your data but cannot place buildings or create topups. See the Moderation tab for details.</div>`:"";
+    byId("dashBody").innerHTML=`${banner}<div>Balance: <b>${fmtGold(currentUser.gold)}</b> | Buildings: ${ownedList.length}</div><div class="tabs">${Object.keys(labels).map(key=>`<button data-tab="${key}" class="${key===dashTab?"active":""}">${labels[key]}</button>`).join("")}</div>${views[dashTab]()}`;
+}
+
+byId("dashBody").onclick=event=>{
+    const button=event.target.closest("button");
+    if(!button||!button.dataset.tab) return;
+    dashTab=button.dataset.tab;
+    renderDashboard();
+};
+
+function openLeaderboard(){
+    const totals=new Map();
+    entities.forEach(entity=>totals.set(entity.info.ownerId,(totals.get(entity.info.ownerId)||0)+entity.info.cost));
+    const ranked=[...totals.entries()].sort((first,second)=>second[1]-first[1]).slice(0,5);
+    byId("lbList").innerHTML=ranked.map(([ownerId,total],index)=>`<li><span>${index+1}. ${esc(nameOf(ownerId))}</span> <span>${fmtGold(total)}</span></li>`).join("");
+    toggleModal(byId("leaderboardModal"),true);
+}
+
+let adminTab="overview";
+const adminFilters={topupUser:"",topupStatus:"all",topupSort:"desc",logType:"all",userSearch:""};
+
+function openAdmin(){
+    renderAdmin();
+    toggleModal(byId("admin"),true);
+}
+
+function overviewHtml(){
+    const completed=topups.filter(topup=>topup.status==="completed");
+    const raised=completed.reduce((sum,topup)=>sum+topup.php,0);
+    const spent=entities.reduce((sum,entity)=>sum+entity.info.cost,0);
+    const typeLines=BUILDINGS.map((building,index)=>`${building.name}: ${entities.filter(entity=>entity.type===index).length}`).join("<br>");
+    const cards=[
+        ["Total raised","PHP "+raised.toLocaleString()],
+        ["Completed topups",completed.length],
+        ["Pending topups",topups.filter(topup=>topup.status==="pending").length],
+        ["Failed or expired",topups.filter(topup=>topup.status==="failed"||topup.status==="expired").length],
+        ["Buildings placed",entities.length],
+        ["Gold spent",fmtGold(spent)],
+        ["Users",users.length],
+        ["Banned users",users.filter(user=>user.role==="banned").length]
+    ];
+    return `<div class="cards">${cards.map(([label,value])=>`<div class="card">${label}<b>${value}</b></div>`).join("")}<div class="card">Buildings by type<br>${typeLines}</div></div><div class="ph">Earnings over time (image placeholder)</div><div class="ph">Buildings by type (image placeholder)</div>`;
+}
+
+function adminTableHtml(){
+    if(adminTab==="topups"){
+        const rows=topups
+            .filter(topup=>nameOf(topup.userId).includes(adminFilters.topupUser.toLowerCase())&&(adminFilters.topupStatus==="all"||topup.status===adminFilters.topupStatus))
+            .sort((first,second)=>adminFilters.topupSort==="asc"?first.createdAt-second.createdAt:second.createdAt-first.createdAt)
+            .map(topup=>[topup.id,esc(nameOf(topup.userId)),"PHP "+topup.php,topup.status,fmtDate(topup.createdAt)]);
+        return table(["ID","User","Amount","Status","Created"],rows);
+    }
+    if(adminTab==="logs"){
+        const rows=events
+            .filter(event=>MOD_TYPES.includes(event.type)&&(adminFilters.logType==="all"||event.type===adminFilters.logType))
+            .sort(newest)
+            .map(event=>[fmtDate(event.at),event.type,esc(nameOf(event.actorId)),esc(nameOf(event.targetId)),event.delta?signed(event.delta):"",esc(event.reason||""),detail(event.data)]);
+        return table(["Date","Type","Actor","Target","Gold","Reason","Details"],rows);
+    }
+    const rows=users
+        .filter(user=>user.username.includes(adminFilters.userSearch.toLowerCase()))
+        .map(user=>{
+            const protectedCell=user.role==="admin";
+            const banLabel=user.role==="banned"?"Unban":"Ban";
+            const banAction=user.role==="banned"?"unban":"ban";
+            const actionsCell=protectedCell?"protected":`<button data-do="${banAction}" data-user="${user.id}">${banLabel}</button> <button data-do="credit" data-user="${user.id}">Credit</button>`;
+            return [esc(user.username),user.role,fmtGold(user.gold),fmtDate(user.createdAt),actionsCell];
+        });
+    return table(["Username","Role","Gold","Joined","Actions"],rows);
+}
+
+function renderAdminTable(){
+    byId("adminTable").innerHTML=adminTableHtml();
+}
+
+function renderAdmin(){
+    expireStaleTopups();
+    const tabs=[["overview","Overview"],["topups","Topups"],["logs","Moderation Logs"],["users","Users"]];
+    byId("adminTabs").innerHTML=tabs.map(([key,label])=>`<button data-atab="${key}" class="${key===adminTab?"active":""}">${label}</button>`).join("");
+    const body=byId("adminBody");
+    if(adminTab==="overview"){
+        body.innerHTML=overviewHtml();
+        return;
+    }
+    const controls={
+        topups:`<div class="filters"><input data-filter="topupUser" placeholder="Filter by username"><select data-filter="topupStatus"><option value="all">All statuses</option><option>pending</option><option>completed</option><option>failed</option><option>expired</option></select><select data-filter="topupSort"><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>`,
+        logs:`<div class="filters"><select data-filter="logType"><option value="all">All moderation actions</option>${MOD_TYPES.map(type=>`<option>${type}</option>`).join("")}</select></div>`,
+        users:`<div class="filters"><input data-filter="userSearch" placeholder="Search username"></div>`
+    };
+    body.innerHTML=controls[adminTab]+`<div id="adminTable"></div>`;
+    body.querySelectorAll("[data-filter]").forEach(control=>{
+        control.value=adminFilters[control.dataset.filter];
+    });
+    renderAdminTable();
+}
+
+byId("adminTabs").onclick=event=>{
+    const button=event.target.closest("button");
+    if(!button||!button.dataset.atab) return;
+    adminTab=button.dataset.atab;
+    renderAdmin();
+};
+
+byId("adminBody").addEventListener("input",event=>{
+    const filter=event.target.dataset.filter;
+    if(!filter) return;
+    adminFilters[filter]=event.target.value;
+    renderAdminTable();
+});
+
+byId("adminBody").addEventListener("click",event=>{
+    const button=event.target.closest("button");
+    if(!button||!button.dataset.do) return;
+    const user=userById(button.dataset.user);
+    if(button.dataset.do==="ban") askReason("Ban "+user.username,false,reason=>adminBan(user.id,reason));
+    if(button.dataset.do==="credit") askReason("Credit gold to "+user.username,true,(reason,amount)=>adminCredit(user.id,amount,reason));
+    if(button.dataset.do==="unban"){
+        const error=adminUnban(user.id);
+        toast(error||"Unbanned "+user.username);
+        afterAdminChange();
+    }
+});
+
+const navActions={dashboard:openDashboard,topup:openTopup,leaderboard:openLeaderboard,admin:openAdmin,signout:handleSignOut};
+
+document.addEventListener("click",event=>{
+    const closer=event.target.closest("[data-close]");
+    if(closer) toggleModal(byId(closer.dataset.close),false);
+    const nav=event.target.closest("[data-act]");
+    if(nav) navActions[nav.dataset.act]();
+});
+
+byId("signInBtn").onclick=openAuth;
+byId("authSubmit").onclick=submitAuth;
 
 async function main(){
     const app=new PIXI.Application();
     await app.init({resizeTo:window,background:"#ffffff",antialias:true});
     document.body.appendChild(app.canvas);
 
-    document.getElementById("toggle").onclick=()=>drawer.classList.toggle("collapsed");
+    byId("toggle").onclick=()=>drawer.classList.toggle("collapsed");
 
     const world=new PIXI.Container();
     app.stage.addChild(world);
@@ -224,12 +665,25 @@ async function main(){
         const sprite=new PIXI.Sprite(textures[t]);
         sprite.x=x*CELL; sprite.y=y*CELL;
         entityLayer.addChild(sprite);
-        const entity={x,y,type:t,sprite,info};
+        const entity={x,y,type:t,sprite,info,roamer:null};
         entities.push(entity);
         entityMap.set(k,entity);
         if(t===ROAD_TYPE) refreshRoads();
-        if(t===ROAM_TYPE) spawnRoamer(entity);
+        if(t===ROAM_TYPE) entity.roamer=spawnRoamer(entity);
     }
+
+    actions.removeEntity=entity=>{
+        entityLayer.removeChild(entity.sprite);
+        entity.sprite.destroy();
+        entities.splice(entities.indexOf(entity),1);
+        entityMap.delete(cellKey(entity.x,entity.y));
+        if(entity.roamer){
+            roamerLayer.removeChild(entity.roamer.sprite);
+            entity.roamer.sprite.destroy();
+            roamers.splice(roamers.indexOf(entity.roamer),1);
+        }
+        if(entity.type===ROAD_TYPE) refreshRoads();
+    };
 
     function findNearestSame(e){
         let nearest=null, minD=Infinity;
@@ -275,6 +729,7 @@ async function main(){
         roamerLayer.addChild(dot);
         const r={sprite:dot,homeX:dot.x,homeY:dot.y,targetX:dot.x,targetY:dot.y,wait:randomPause()};
         pickTarget(r); roamers.push(r);
+        return r;
     }
 
     app.ticker.add(t=>{
@@ -293,39 +748,61 @@ async function main(){
     for(let y=CENTER_START;y<CENTER_END;y++){
         for(let x=CENTER_START;x<CENTER_END;x++){
             const t=Math.floor(Math.random()*BUILDINGS.length);
-            placeEntity(x,y,t,createInfo(t,BUILDINGS[t].name+" "+(buildingCounter+1),SYSTEM_NAME));
+            const owner=seedUsers[Math.floor(Math.random()*seedUsers.length)];
+            placeEntity(x,y,t,createInfo(t,BUILDINGS[t].name+" "+(buildingCounter+1),owner.id));
         }
     }
 
-    const menu=document.getElementById("menu"), infoPanel=document.getElementById("info"), modal=document.getElementById("modal");
-    const summary=document.getElementById("summary"), nameInput=document.getElementById("nameInput");
+    const menu=byId("menu"), infoPanel=byId("info"), modal=byId("modal");
+    const summary=byId("summary"), nameInput=byId("nameInput"), confirmError=byId("confirmError");
 
-    function showInfo(e){
-        const b=BUILDINGS[e.type];
-        infoPanel.innerHTML=`<b>${e.info.name}</b><br>Type: ${b.name}<br>Placed by: ${e.info.placedBy}<br>Date: ${e.info.date}<br>Cost: $${e.info.cost}<br>Cell: ${e.x}, ${e.y}`;
+    function showInfo(entity){
+        const b=BUILDINGS[entity.type];
+        const removeButton=isAdmin()?`<br><button id="removeBtn">Remove (admin)</button>`:"";
+        infoPanel.innerHTML=`<b>${esc(entity.info.name)}</b><br>Type: ${b.name}<br>Placed by: ${esc(nameOf(entity.info.ownerId))}<br>Date: ${fmtDate(entity.info.at)}<br>Cost: ${fmtGold(entity.info.cost)}<br>Cell: ${entity.x}, ${entity.y}${removeButton}`;
         infoPanel.style.display="block";
+        if(!isAdmin()) return;
+        byId("removeBtn").onclick=()=>askReason("Remove "+entity.info.name,false,reason=>adminRemoveBuilding(entity,reason));
     }
 
     function openConfirm(t){
         const b=BUILDINGS[t]; pendingType=t;
-        summary.innerHTML=`Type: ${b.name}<br>Placed by: ${PLAYER_NAME}<br>Date: ${new Date().toLocaleDateString()}<br>Cost: $${b.cost}<br>Cell: ${selectedCell.x}, ${selectedCell.y}`;
+        confirmError.textContent="";
+        summary.innerHTML=`Type: ${b.name}<br>Placed by: ${esc(currentUser.username)}<br>Cost: ${fmtGold(b.cost)}<br>Balance: ${fmtGold(currentUser.gold)}<br>Cell: ${selectedCell.x}, ${selectedCell.y}`;
         nameInput.value=`${b.name} ${buildingCounter+1}`;
         toggleModal(modal, true);
     }
 
     const closeConfirm=()=>{pendingType=null; toggleModal(modal, false);};
-    document.getElementById("cancel").onclick=closeConfirm;
+    byId("cancel").onclick=closeConfirm;
 
-    document.getElementById("confirm").onclick=()=>{
+    byId("confirm").onclick=()=>{
         if(!selectedCell||pendingType===null) return;
-        const finalName=nameInput.value.trim()||BUILDINGS[pendingType].name;
-        placeEntity(selectedCell.x,selectedCell.y,pendingType,createInfo(pendingType,finalName,PLAYER_NAME));
-        closeConfirm(); clearSelection();
+        if(isBanned()){
+            confirmError.textContent="Banned accounts cannot place buildings.";
+            return;
+        }
+        if(entityMap.has(cellKey(selectedCell.x,selectedCell.y))){
+            confirmError.textContent="Tile already taken.";
+            return;
+        }
+        const building=BUILDINGS[pendingType];
+        if(currentUser.gold<building.cost){
+            confirmError.textContent="Insufficient gold. Top up first.";
+            return;
+        }
+        const finalName=nameInput.value.trim()||building.name;
+        const info=createInfo(pendingType,finalName,currentUser.id);
+        currentUser.gold-=building.cost;
+        placeEntity(selectedCell.x,selectedCell.y,pendingType,info);
+        logEvent("building_placed",currentUser.id,currentUser.id,-building.cost,null,{building_id:info.id,building_type:building.name,x:selectedCell.x,y:selectedCell.y});
+        closeConfirm(); clearSelection(); refreshChrome();
+        toast("Placed "+finalName);
     };
 
     BUILDINGS.forEach((b,i)=>{
         const btn=document.createElement("button");
-        btn.textContent=`${b.name} ($${b.cost})`;
+        btn.textContent=`${b.name} (${b.cost} g)`;
         btn.style.borderBottom=`4px solid #${b.color.toString(16).padStart(6,"0")}`;
         btn.onclick=()=>selectedCell&&openConfirm(i);
         menu.appendChild(btn);
@@ -345,7 +822,7 @@ async function main(){
         highlight.x=cx*CELL; highlight.y=cy*CELL; highlight.visible=true;
         const existing=entityMap.get(cellKey(cx,cy));
         if(existing) return showInfo(existing);
-        if(isSignedIn) menu.style.display="flex";
+        if(currentUser) menu.style.display="flex";
     }
 
     let activePointers=new Map(), isMultiTouch=false, initialPinchDist=0, initialScale=1;
@@ -420,6 +897,7 @@ async function main(){
     },{passive:false});
 }
 
+refreshChrome();
 main();
 </script>
 </body>
