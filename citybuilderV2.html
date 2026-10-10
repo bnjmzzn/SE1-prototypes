@@ -4,512 +4,106 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-:root {
-    --bg: #f8f9fa;
-    --surface: #ffffff;
-    --surface-alt: #f3f4f6;
-    --border: #e5e7eb;
-    --border-strong: #d1d5db;
-    --text: #111827;
-    --text-muted: #6b7280;
-    --accent: #2563eb;
-    --accent-soft: #eff6ff;
-    --danger: #dc2626;
-    --danger-soft: #fef2f2;
-    --radius: 8px;
-    --shadow: 0 4px 16px rgba(17, 24, 39, 0.08);
-}
-* {
-    box-sizing: border-box;
-}
-body {
-    margin: 0;
-    overflow: hidden;
-    background: var(--bg);
-    color: var(--text);
-    font-family: Inter, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    -webkit-font-smoothing: antialiased;
-}
-canvas {
-    touch-action: none;
-    display: block;
-}
-b {
-    font-weight: 600;
-}
-button {
-    font: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-    padding: 8px 14px;
-    cursor: pointer;
-    background: var(--surface);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius);
-    transition: background 0.15s, border-color 0.15s;
-}
-button:hover:not(:disabled) {
-    background: var(--surface-alt);
-}
-button.active,
-button.primary {
-    background: var(--text);
-    border-color: var(--text);
-    color: #fff;
-}
-button.active:hover:not(:disabled),
-button.primary:hover:not(:disabled) {
-    background: #1f2937;
-}
-button:disabled {
-    opacity: 0.45;
-    cursor: default;
-}
-input:not([type=checkbox]),
-select {
-    font: inherit;
-    font-size: 13px;
-    color: var(--text);
-    background: var(--surface);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius);
-    padding: 8px 10px;
-    outline: none;
-}
-input:not([type=checkbox]):focus,
-select:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-}
-input[type=checkbox] {
-    accent-color: var(--accent);
-    margin: 0;
-}
+:root{--bg:#f8f9fa;--surface:#fff;--surface-alt:#f3f4f6;--border:#e5e7eb;--border-strong:#d1d5db;--text:#111827;--text-muted:#6b7280;--accent:#2563eb;--accent-soft:#eff6ff;--danger:#dc2626;--danger-soft:#fef2f2;--radius:8px;--shadow:0 4px 16px rgba(17,24,39,.08)}
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:var(--bg);color:var(--text);font:14px Inter,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+canvas{touch-action:none;display:block}
+b{font-weight:600}
+button{font:inherit;font-size:13px;font-weight:500;color:var(--text);padding:8px 14px;cursor:pointer;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);transition:background .15s,border-color .15s}
+button:hover:not(:disabled){background:var(--surface-alt)}
+button.active,button.primary{background:var(--text);border-color:var(--text);color:#fff}
+button.active:hover:not(:disabled),button.primary:hover:not(:disabled){background:#1f2937}
+button:disabled{opacity:.45;cursor:default}
+input:not([type=checkbox]),select{font:inherit;font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);padding:8px 10px;outline:none}
+input:not([type=checkbox]):focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+input[type=checkbox]{accent-color:var(--accent);margin:0}
 
-#authBar {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    z-index: 5;
-}
-#userChip {
-    position: fixed;
-    top: 16px;
-    left: 56px;
-    z-index: 5;
-    display: none;
-    padding: 8px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    color: var(--text-muted);
-}
-#userChip b {
-    color: var(--text);
-}
-#adminTools {
-    position: fixed;
-    top: 64px;
-    left: 16px;
-    z-index: 5;
-    display: none;
-}
-#toast {
-    position: fixed;
-    top: 64px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--text);
-    color: #fff;
-    padding: 10px 16px;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    display: none;
-    z-index: 50;
-}
+#authBar{position:fixed;top:12px;left:12px;z-index:5}
+#userChip{position:fixed;top:12px;left:12px;z-index:5;display:none;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);color:var(--text-muted)}
+#userChip b{color:var(--text)}
+#adminTools{position:fixed;top:60px;left:12px;z-index:5;display:none}
+#toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 16px;border-radius:var(--radius);box-shadow:var(--shadow);display:none;z-index:50}
 
-#drawer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 200px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    transition: transform 0.2s;
-    z-index: 10;
-    display: none;
-    padding: 16px;
-}
-#drawer.collapsed {
-    transform: translateX(-200px);
-}
-#toggle {
-    position: absolute;
-    top: 12px;
-    right: -44px;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    font-size: 16px;
-    box-shadow: var(--shadow);
-}
-#drawer > div:first-of-type {
-    font-weight: 600;
-    font-size: 15px;
-    padding: 4px 4px 0;
-}
-#drawer nav {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 12px;
-}
-#drawer nav button {
-    text-align: left;
-    border-color: transparent;
-    background: transparent;
-}
-#drawer nav button:hover {
-    background: var(--surface-alt);
-}
+#drawer{position:fixed;top:0;left:0;bottom:0;width:220px;background:var(--surface);border-right:1px solid var(--border);transition:transform .2s;z-index:10;display:none;padding:16px}
+#drawer.collapsed{transform:translateX(-220px)}
+#toggle{position:absolute;top:12px;right:-44px;width:36px;height:36px;padding:0;font-size:16px;box-shadow:var(--shadow)}
+#drawer>b{display:block;font-size:15px;padding:4px 4px 0}
+#dock{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+#drawer #userChip,#drawer #info,#drawer #adminTools{position:static;min-width:0;max-width:none;box-shadow:none}
+#drawer #adminTools button{width:100%}
+#drawer nav{display:flex;flex-direction:column;gap:4px;margin-top:12px}
+#drawer nav button{text-align:left;border-color:transparent;background:transparent}
+#drawer nav button:hover{background:var(--surface-alt)}
 
-#bottomNav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 56px;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    display: none;
-    justify-content: space-around;
-    align-items: center;
-    z-index: 9;
-}
-#bottomNav button {
-    padding: 6px 8px;
-    font-size: 11px;
-    border-color: transparent;
-    background: transparent;
-}
+#bottomNav{position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--surface);border-top:1px solid var(--border);display:none;justify-content:space-around;align-items:center;z-index:9}
+#bottomNav button{padding:6px 8px;font-size:11px;border-color:transparent;background:transparent}
 
-#menu {
-    position: fixed;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: none;
-    gap: 8px;
-    padding: 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    z-index: 5;
-    max-width: 90vw;
-    overflow-x: auto;
-}
-#menu button {
-    white-space: nowrap;
-}
-#pickBar {
-    position: fixed;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: none;
-    gap: 8px;
-    align-items: center;
-    padding: 8px 8px 8px 16px;
-    background: var(--surface);
-    border: 1px solid var(--accent);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    z-index: 6;
-}
-#pickCount {
-    font-weight: 500;
-    margin-right: 8px;
-}
-#info {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    display: none;
-    padding: 14px 16px;
-    min-width: 200px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    line-height: 1.7;
-    color: var(--text-muted);
-    z-index: 5;
-}
-#info b {
-    color: var(--text);
-    font-size: 15px;
-}
-#info button {
-    margin-top: 8px;
-    color: var(--danger);
-    border-color: var(--danger-soft);
-    background: var(--danger-soft);
-}
+#menu{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:8px;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);z-index:5;max-width:90vw;overflow-x:auto}
+#menu button{display:flex;align-items:center;gap:8px;white-space:nowrap}
+#menu img{width:24px;height:24px;object-fit:contain}
+#menu img[src=""]{display:none}
+#pickBar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:8px;align-items:center;padding:8px 8px 8px 16px;background:var(--surface);border:1px solid var(--accent);border-radius:12px;box-shadow:var(--shadow);z-index:6}
+#pickCount{font-weight:500;margin-right:8px}
+#info{position:fixed;top:16px;right:16px;display:none;padding:14px 16px;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);line-height:1.7;color:var(--text-muted);z-index:5}
+#info b{color:var(--text);font-size:15px}
+#info button{margin-top:8px;color:var(--danger);border-color:var(--danger-soft);background:var(--danger-soft)}
 
-.modal {
-    position: fixed;
-    inset: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: rgba(17, 24, 39, 0.4);
-    z-index: 40;
-}
-.modal-box {
-    background: var(--surface);
-    padding: 24px;
-    min-width: 280px;
-    line-height: 1.6;
-    max-width: 92vw;
-    border-radius: 12px;
-    box-shadow: 0 16px 48px rgba(17, 24, 39, 0.2);
-}
-.modal-box > b {
-    display: block;
-    font-size: 16px;
-    margin-bottom: 8px;
-}
-.modal-box input:not([type=checkbox]) {
-    width: 100%;
-    margin: 6px 0;
-}
-.modal-box label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 8px 0;
-    color: var(--text-muted);
-    font-size: 13px;
-}
-.modal-box > button {
-    margin-top: 12px;
-    margin-right: 6px;
-}
-.wide {
-    width: min(680px, 92vw);
-    max-height: 80vh;
-    overflow: auto;
-}
-.lb-list {
-    list-style: none;
-    padding: 0;
-    margin: 8px 0;
-}
-.lb-list li {
-    display: flex;
-    justify-content: space-between;
-    gap: 24px;
-    border-bottom: 1px solid var(--border);
-    padding: 8px 0;
-}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(17,24,39,.4);z-index:40}
+.modal-box{background:var(--surface);padding:24px;min-width:280px;line-height:1.6;max-width:92vw;border-radius:12px;box-shadow:0 16px 48px rgba(17,24,39,.2)}
+.modal-box>b{display:block;font-size:16px;margin-bottom:8px}
+.modal-box input:not([type=checkbox]){width:100%;margin:6px 0}
+.modal-box label{display:flex;align-items:center;gap:8px;margin:8px 0;color:var(--text-muted);font-size:13px}
+.modal-box>button{margin-top:12px;margin-right:6px}
+.wide{width:min(680px,92vw);max-height:80vh;overflow:auto}
+.lb-list{list-style:none;padding:0;margin:8px 0}
+.lb-list li{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid var(--border);padding:8px 0}
 
-#admin {
-    position: fixed;
-    inset: 0;
-    background: var(--bg);
-    z-index: 30;
-    display: none;
-    flex-direction: column;
-}
-#adminHead {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    padding: 12px 16px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-}
-#adminTabs {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    flex: 1;
-}
-#adminTabs button {
-    border-color: transparent;
-    background: transparent;
-}
-#adminTabs button.active {
-    background: var(--text);
-}
-#adminBody {
-    flex: 1;
-    overflow: auto;
-    padding: 16px;
-}
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
-}
-.card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
-    color: var(--text-muted);
-    font-size: 13px;
-}
-.card b {
-    display: block;
-    font-size: 22px;
-    margin-top: 4px;
-    color: var(--text);
-}
-.ph {
-    border: 1px dashed var(--border-strong);
-    border-radius: 10px;
-    background: var(--surface);
-    height: 180px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    margin-bottom: 16px;
-}
-.filters {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-}
-.tabs {
-    display: flex;
-    gap: 6px;
-    margin: 12px 0;
-    flex-wrap: wrap;
-}
-.tabs button {
-    padding: 6px 12px;
-    border-color: transparent;
-    background: var(--surface-alt);
-}
-.tabs button.active {
-    background: var(--text);
-}
-.scroll {
-    overflow-x: auto;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-th {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-    background: var(--surface-alt);
-}
-th,
-td {
-    border-bottom: 1px solid var(--border);
-    padding: 10px 12px;
-    text-align: left;
-    white-space: nowrap;
-}
-tr:last-child td {
-    border-bottom: none;
-}
-td button {
-    padding: 4px 10px;
-    font-size: 12px;
-}
-.err {
-    color: var(--danger);
-    min-height: 18px;
-    font-size: 13px;
-}
-.banner {
-    background: var(--danger-soft);
-    border: 1px solid #fecaca;
-    color: #991b1b;
-    border-radius: var(--radius);
-    padding: 10px 12px;
-    margin: 8px 0;
-    font-size: 13px;
-}
-.info {
-    background: var(--accent-soft);
-    border: 1px solid #bfdbfe;
-    color: #1e40af;
-    border-radius: var(--radius);
-    padding: 10px 12px;
-    margin: 8px 0;
-    font-size: 13px;
-}
-.pkgs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 12px 0;
-}
-.pkgs button {
-    padding: 10px 16px;
-    line-height: 1.5;
-}
-.pkgs button:hover {
-    border-color: var(--accent);
-}
-@media (max-width: 600px) {
-    #menu,
-    #pickBar {
-        bottom: 68px;
-    }
-    #authBar {
-        top: 12px;
-        left: 12px;
-    }
-    #userChip {
-        top: 12px;
-        left: 12px;
-    }
-    #info {
-        top: 60px;
-        right: 12px;
-        max-width: 80vw;
-    }
-    #adminTools {
-        top: 60px;
-        left: 12px;
-    }
+#admin{position:fixed;inset:0;background:var(--bg);z-index:30;display:none;flex-direction:column}
+#adminHead{display:flex;gap:12px;align-items:center;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+#adminTabs{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+#adminTabs button{border-color:transparent;background:transparent}
+#adminTabs button.active,.tabs button.active{background:var(--text)}
+#adminBody{flex:1;overflow:auto;padding:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;color:var(--text-muted);font-size:13px}
+.card b{display:block;font-size:22px;margin-top:4px;color:var(--text)}
+.ph{border:1px dashed var(--border-strong);border-radius:10px;background:var(--surface);height:180px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);margin-bottom:16px}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tabs{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
+.tabs button{padding:6px 12px;border-color:transparent;background:var(--surface-alt)}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);background:var(--surface-alt)}
+th,td{border-bottom:1px solid var(--border);padding:10px 12px;text-align:left;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td button{padding:4px 10px;font-size:12px}
+.err{color:var(--danger);min-height:18px;font-size:13px}
+.banner{background:var(--danger-soft);border:1px solid #fecaca;color:#991b1b;border-radius:var(--radius);padding:10px 12px;margin:8px 0;font-size:13px}
+.info{background:var(--accent-soft);border:1px solid #bfdbfe;color:#1e40af;border-radius:var(--radius);padding:10px 12px;margin:8px 0;font-size:13px}
+.pkgs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.pkgs button{padding:10px 16px;line-height:1.5}
+.pkgs button:hover{border-color:var(--accent)}
+.row{display:flex;gap:8px;align-items:center;margin-top:12px}
+.captcha{display:flex;align-items:center}
+.captcha .box{width:18px;height:18px;border:1px solid var(--border-strong);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;font-size:12px;background:var(--surface)}
+.captcha.on .box{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (max-width:600px){
+#menu,#pickBar{bottom:68px}
+#info{top:60px;right:12px;max-width:80vw}
 }
 </style>
 </head>
 <body>
 
-<div id="authBar">
-    <button id="signInBtn" class="primary">Sign In</button>
-</div>
+<div id="authBar"><button id="signInBtn" class="primary">Sign In</button></div>
 <div id="userChip"></div>
 <div id="adminTools"><button id="selectBtn">Select mode: off</button></div>
 <div id="toast"></div>
 
 <div id="drawer" class="collapsed">
     <button id="toggle">&#9776;</button>
-    <div style="font-weight:bold;margin-bottom:8px;">Menu</div>
+    <b>Menu</b>
+    <div id="dock"></div>
     <nav>
         <button data-act="dashboard">Dashboard</button>
         <button data-act="topup">Top Up</button>
@@ -535,12 +129,19 @@ td button {
     <div class="modal-box">
         <b>Sign In</b>
         <input id="authUser" placeholder="Username" maxlength="20" autocomplete="off">
-        <input id="authPass" type="password" placeholder="Password" maxlength="64">
-        <label><input type="checkbox" id="authCaptcha"> I am not a robot (hCaptcha mock)</label>
-        <div style="font-size:12px;color:#6b7280">An unknown username creates a new account.</div>
+        <input id="authPass" type="password" placeholder="Password">
+        <label><input type="checkbox" id="authCaptcha"> I am not a robot</label>
         <div class="err" id="authError"></div>
         <button id="authSubmit" class="primary">Continue</button>
         <button data-close="authModal">Cancel</button>
+    </div>
+</div>
+
+<div id="signoutModal" class="modal">
+    <div class="modal-box">
+        <b>Sign out?</b>
+        <button id="signoutConfirm" class="primary">Sign Out</button>
+        <button data-close="signoutModal">Cancel</button>
     </div>
 </div>
 
@@ -603,7 +204,24 @@ td button {
 
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.js"></script>
 <script>
+const BUILDINGS=[
+    {name:"House",src:"https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Hut/3D/hut_3d.png",cost:100},
+    {name:"Tower",src:"https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Mount%20fuji/3D/mount_fuji_3d.png",cost:250},
+    {name:"Farm",src:"https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Deciduous%20tree/3D/deciduous_tree_3d.png",cost:150},
+    {name:"Shop",src:"https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Convenience%20store/3D/convenience_store_3d.png",cost:200},
+    {name:"Temple",src:"https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Classical%20building/3D/classical_building_3d.png",cost:500}
+];
+const ROAMER_SRCS=[
+    "https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Bird/3D/bird_3d.png",
+    "https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Dove/3D/dove_3d.png",
+    "https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Front-facing%20baby%20chick/3D/front-facing_baby_chick_3d.png",
+    "https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Duck/3D/duck_3d.png"
+];
+const ROAMER_SIZE=18;
+
 const GRID=100, CELL=48, CENTER_START=40, CENTER_END=60, MIN_ZOOM=0.2, MAX_ZOOM=4, DRAG_THRESHOLD=5, DAY=86400000, TOPUP_TTL=1800000;
+const MOBILE_WIDTH=600, SPRITE_SIZE=CELL-8, FALLBACK_TINT=0x9ca3af, BOB_AMP=2, BOB_SPEED_MIN=0.8, BOB_SPEED_MAX=1.6, LABEL_PAD=6;
+const SCATTER_COUNT=160, SCATTER_RADIUS=9;
 const PACKAGES=[50,150,300,500,1000];
 const MOD_TYPES=["user_banned","user_unbanned","building_removed","gold_credited"];
 const byId=id=>document.getElementById(id);
@@ -616,7 +234,9 @@ const detail=data=>data?esc(Object.entries(data).map(([key,value])=>key+"="+valu
 const toggleModal=(element,show)=>element.style.display=show?"flex":"none";
 
 function table(headers,rows){
-    if(!rows.length) return "<p>No records.</p>";
+    if(!rows.length){
+        return "<p>No records.</p>";
+    }
     return `<div class="scroll"><table><tr>${headers.map(header=>`<th>${header}</th>`).join("")}</tr>${rows.map(row=>`<tr>${row.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}</table></div>`;
 }
 
@@ -650,7 +270,7 @@ function logEvent(type,actorId,targetId,delta,reason,data,at){
 }
 
 const adminUser=addUser("admin","admin",0,"admin");
-const seedUsers=["apexbuilder","cityplanner","urbanlegend","gridmaster","pixelpioneer","trollmaster"].map(name=>addUser(name,"password123",Math.floor(Math.random()*8)*50,name==="trollmaster"?"banned":"user"));
+const seedUsers=["user1","cityplanner","urbanlegend","gridmaster","pixelpioneer","trollmaster"].map(name=>addUser(name,"password123",Math.floor(Math.random()*8)*50,name==="trollmaster"?"banned":"user"));
 
 seedUsers.forEach(user=>{
     const count=2+Math.floor(Math.random()*3);
@@ -661,7 +281,9 @@ seedUsers.forEach(user=>{
         const createdAt=Date.now()-Math.random()*14*DAY;
         const topup={id:newId("t"),userId:user.id,php:amount,status,createdAt,expiresAt:createdAt+TOPUP_TTL,updatedAt:createdAt,ref:"cs_"+Math.random().toString(36).slice(2,10)};
         topups.push(topup);
-        if(status==="completed") logEvent("topup_completed",null,user.id,amount,null,{topup_id:topup.id,php_amount:amount},createdAt);
+        if(status==="completed"){
+            logEvent("topup_completed",null,user.id,amount,null,{topup_id:topup.id,php_amount:amount},createdAt);
+        }
     }
 });
 
@@ -676,51 +298,39 @@ const isAdmin=()=>currentUser&&currentUser.role==="admin";
 const isBanned=()=>currentUser&&currentUser.role==="banned";
 
 const drawer=byId("drawer"), bottomNav=byId("bottomNav");
+const DOCKED=["userChip","adminTools"];
 
 function checkLayout(){
-    const isMobile=window.innerWidth<=600;
-    if(!currentUser){
-        drawer.style.display="none";
-        bottomNav.style.display="none";
-        return;
-    }
-    drawer.style.display=isMobile?"none":"block";
-    bottomNav.style.display=isMobile?"flex":"none";
+    const isMobile=window.innerWidth<=MOBILE_WIDTH;
+    const host=isMobile||!currentUser?document.body:byId("dock");
+    DOCKED.forEach(id=>{
+        const element=byId(id);
+        if(element.parentElement!==host){
+            host.appendChild(element);
+        }
+    });
+    drawer.style.display=currentUser&&!isMobile?"block":"none";
+    bottomNav.style.display=currentUser&&isMobile?"flex":"none";
 }
-window.addEventListener("resize", checkLayout);
+window.addEventListener("resize",checkLayout);
 
 function refreshChrome(){
     byId("signInBtn").style.display=currentUser?"none":"inline-block";
     const chip=byId("userChip");
     chip.style.display=currentUser?"block":"none";
-    if(currentUser) chip.innerHTML=`<b>${esc(currentUser.username)}</b> (${currentUser.role}) &middot; ${fmtGold(currentUser.gold)}`;
+    if(currentUser){
+        chip.innerHTML=`<b>${esc(currentUser.username)}</b> (${currentUser.role}) &middot; ${fmtGold(currentUser.gold)}`;
+    }
     document.querySelectorAll(".adminOnly").forEach(button=>button.style.display=isAdmin()?"inline-block":"none");
     byId("adminTools").style.display=isAdmin()?"block":"none";
     checkLayout();
 }
 
-const BUILDINGS=[
-    {name:"House",color:0x3b82f6,shape:"square",cost:100},
-    {name:"Tower",color:0xf97316,shape:"circle",cost:250},
-    {name:"Farm",color:0x22c55e,shape:"triangle",cost:150},
-    {name:"Shop",color:0xa855f7,shape:"diamond",cost:200},
-    {name:"Temple",color:0xef4444,shape:"hexagon",cost:500}
-];
-
-const ROAD_TYPE=3, ROAM_TYPE=2, ROAD_RADIUS=4, ROAD_WIDTH=6, ROAD_COLOR=0x9ca3af, ROAM_RADIUS=CELL*1.2, ROAM_SPEED=40, ROAM_PAUSE_MIN=0.4, ROAM_PAUSE_MAX=2;
+ROAD_TYPES=[0,3], ROAM_TYPE=2, ROAD_RADIUS=4, ROAD_WIDTH=6, ROAD_COLOR=0x9ca3af, ROAM_RADIUS=CELL*1.2, ROAM_SPEED=40, ROAM_PAUSE_MIN=0.4, ROAM_PAUSE_MAX=2;
 const roamers=[], entities=[], entityMap=new Map(), actions={drawPicks(){}};
 const picked=new Set(), adminSelected=new Set();
 let selectedCell=null, pendingType=null, buildingCounter=0, selectMode=false;
 const cellKey=(x,y)=>y*GRID+x;
-
-function drawShape(g,s){
-    const h=CELL/2, p=6;
-    if(s==="square") return g.rect(p,p,CELL-p*2,CELL-p*2);
-    if(s==="circle") return g.circle(h,h,h-p);
-    if(s==="triangle") return g.poly([h,p,CELL-p,CELL-p,p,CELL-p]);
-    if(s==="diamond") return g.poly([h,p,CELL-p,h,h,CELL-p,p,h]);
-    g.poly([p+8,p,CELL-p-8,p,CELL-p,h,CELL-p-8,CELL-p,p+8,CELL-p,p,h]);
-}
 
 const createInfo=(type,name,ownerId)=>({name,ownerId,at:Date.now(),cost:BUILDINGS[type].cost,id:++buildingCounter});
 
@@ -751,7 +361,9 @@ function askReason(title,config,onSubmit){
 byId("optRemove").onchange=()=>{
     const remove=byId("optRemove").checked;
     byId("optRefund").disabled=!remove;
-    if(!remove) byId("optRefund").checked=false;
+    if(!remove){
+        byId("optRefund").checked=false;
+    }
 };
 
 byId("reasonConfirm").onclick=()=>{
@@ -773,7 +385,9 @@ byId("reasonConfirm").onclick=()=>{
 };
 
 function afterAdminChange(){
-    if(byId("admin").style.display==="flex") renderAdmin();
+    if(byId("admin").style.display==="flex"){
+        renderAdmin();
+    }
     refreshChrome();
     clearSelection();
     actions.drawPicks();
@@ -781,7 +395,9 @@ function afterAdminChange(){
 }
 
 function adminRemoveBuilding(entity,reason){
-    if(!entityMap.has(cellKey(entity.x,entity.y))) return "Building no longer exists.";
+    if(!entityMap.has(cellKey(entity.x,entity.y))){
+        return "Building no longer exists.";
+    }
     const snapshot={building_type:BUILDINGS[entity.type].name,x:entity.x,y:entity.y,gold_spent:entity.info.cost};
     actions.removeEntity(entity);
     logEvent("building_removed",currentUser.id,entity.info.ownerId,0,reason,snapshot);
@@ -792,11 +408,15 @@ function removeBuildings(list,reason,refund){
     const refunds=new Map();
     list.forEach(entity=>{
         const cost=entity.info.cost, ownerId=entity.info.ownerId, buildingId=entity.info.id;
-        if(adminRemoveBuilding(entity,reason)) return;
+        if(adminRemoveBuilding(entity,reason)){
+            return;
+        }
         adminSelected.delete(buildingId);
         refunds.set(ownerId,(refunds.get(ownerId)||0)+cost);
     });
-    if(!refund) return;
+    if(!refund){
+        return;
+    }
     refunds.forEach((total,ownerId)=>{
         userById(ownerId).gold+=total;
         logEvent("gold_credited",currentUser.id,ownerId,total,"Refund for removed buildings: "+reason);
@@ -805,23 +425,31 @@ function removeBuildings(list,reason,refund){
 
 function adminBan(userId,reason,flags){
     const target=userById(userId);
-    if(target.role!=="user") return "Only regular users can be banned.";
+    if(target.role!=="user"){
+        return "Only regular users can be banned.";
+    }
     target.role="banned";
     logEvent("user_banned",currentUser.id,target.id,0,reason);
-    if(flags.remove) removeBuildings(entities.filter(entity=>entity.info.ownerId===target.id),reason,flags.refund);
+    if(flags.remove){
+        removeBuildings(entities.filter(entity=>entity.info.ownerId===target.id),reason,flags.refund);
+    }
     return null;
 }
 
 function adminUnban(userId){
     const target=userById(userId);
-    if(target.role!=="banned") return "User is not banned.";
+    if(target.role!=="banned"){
+        return "User is not banned.";
+    }
     target.role="user";
     logEvent("user_unbanned",currentUser.id,target.id,0,null);
     return null;
 }
 
 function adminCredit(userId,amount,reason){
-    if(!Number.isInteger(amount)||amount<=0) return "Amount must be a positive whole number.";
+    if(!Number.isInteger(amount)||amount<=0){
+        return "Amount must be a positive whole number.";
+    }
     const target=userById(userId);
     target.gold+=amount;
     logEvent("gold_credited",currentUser.id,target.id,amount,reason);
@@ -838,7 +466,9 @@ function askRemove(list,title){
 function expireStaleTopups(){
     const now=Date.now();
     topups.forEach(topup=>{
-        if(topup.status!=="pending"||topup.expiresAt>=now) return;
+        if(topup.status!=="pending"||topup.expiresAt>=now){
+            return;
+        }
         topup.status="expired";
         topup.updatedAt=now;
     });
@@ -846,7 +476,9 @@ function expireStaleTopups(){
 
 function webhook(topupId){
     const topup=topups.find(item=>item.id===topupId);
-    if(topup.status==="completed"||topup.status==="failed") return "duplicate";
+    if(topup.status==="completed"||topup.status==="failed"){
+        return "duplicate";
+    }
     topup.status="completed";
     topup.updatedAt=Date.now();
     const owner=userById(topup.userId);
@@ -883,8 +515,8 @@ function submitAuth(){
             error.textContent="Username: 3 to 20 characters, a-z, 0-9, underscore.";
             return;
         }
-        if(password.length<8||password.length>64){
-            error.textContent="Password: 8 to 64 characters.";
+        if(!password){
+            error.textContent="Password is required.";
             return;
         }
         currentUser=addUser(username,password,0,"user");
@@ -908,12 +540,13 @@ function handleSignOut(){
     updatePickBar();
 }
 
-let topupFlow={view:"packages",topup:null,message:""};
+const freshTopup=message=>({view:"packages",topup:null,message:message||"",pkg:null,human:false});
+let topupFlow=freshTopup();
 
 function openTopup(){
     expireStaleTopups();
     const pending=topups.find(item=>item.userId===currentUser.id&&item.status==="pending");
-    topupFlow=pending?{view:"checkout",topup:pending,message:"You have a pending checkout."}:{view:"packages",topup:null,message:""};
+    topupFlow=pending?{view:"checkout",topup:pending,message:"You have a pending checkout."}:freshTopup();
     renderTopup();
     toggleModal(byId("topupModal"),true);
 }
@@ -923,25 +556,23 @@ function renderTopup(){
     const message=topupFlow.message?`<div class="info">${topupFlow.message}</div>`:"";
     const banned=isBanned()?`<div class="banner">Your account is banned. Topups are disabled.</div>`:"";
     if(topupFlow.view==="packages"){
-        body.innerHTML=`${banned}${message}<div>Select a package (1 g = PHP 1)</div><div class="pkgs">${PACKAGES.map(amount=>`<button data-pkg="${amount}">${fmtGold(amount)}<br>PHP ${amount}</button>`).join("")}</div><label><input type="checkbox" id="topupCaptcha"> I am not a robot (hCaptcha mock)</label><div class="err" id="topupError"></div>`;
+        const ready=topupFlow.pkg&&topupFlow.human;
+        const pkgButtons=PACKAGES.map(amount=>`<button data-pkg="${amount}" class="${amount===topupFlow.pkg?"active":""}">${fmtGold(amount)}<br>PHP ${amount}</button>`).join("");
+        body.innerHTML=`${banned}${message}<div>Select a package (1 g = PHP 1)</div><div class="pkgs">${pkgButtons}</div><button class="captcha ${topupFlow.human?"on":""}" data-tp="captcha"><span class="box">${topupFlow.human?"&#10003;":""}</span>I am not a robot</button><div class="err" id="topupError"></div><div class="row"><button class="primary" data-tp="proceed" ${ready?"":"disabled"}>Proceed</button></div>`;
         return;
     }
     const topup=topupFlow.topup;
     if(topupFlow.view==="checkout"){
-        body.innerHTML=`${message}<b>PayRex Checkout (sandbox)</b><br>Ref: ${topup.ref}<br>Amount: PHP ${topup.php} for ${fmtGold(topup.php)}<br>Expires: ${fmtDate(topup.expiresAt)}<br><br><button class="primary" data-tp="pay">Pay with GCash (simulate)</button>`;
+        body.innerHTML=`${message}<b>PayRex Checkout</b><br>Ref: ${topup.ref}<br>Amount: PHP ${topup.php} for ${fmtGold(topup.php)}<br>Expires: ${fmtDate(topup.expiresAt)}<br><br><button class="primary" data-tp="pay">Pay with GCash</button>`;
         return;
     }
-    body.innerHTML=`${message}<b>Topup ${topup.id}: ${topup.status}</b><br><br><button data-tp="replay">Replay webhook (duplicate test)</button> <button class="primary" data-tp="again">New topup</button>`;
+    body.innerHTML=`${message}<b>Topup ${topup.id}: ${topup.status}</b><br><br><button data-tp="replay">Replay webhook</button> <button class="primary" data-tp="again">New topup</button>`;
 }
 
-function createTopup(amount){
+function createTopup(){
     const error=byId("topupError");
     if(isBanned()){
         error.textContent="Banned accounts cannot create topups.";
-        return;
-    }
-    if(!byId("topupCaptcha").checked){
-        error.textContent="Please complete the captcha.";
         return;
     }
     expireStaleTopups();
@@ -951,7 +582,7 @@ function createTopup(amount){
         message="You already have a pending checkout. Showing it.";
     }else{
         const now=Date.now();
-        topup={id:newId("t"),userId:currentUser.id,php:amount,status:"pending",createdAt:now,expiresAt:now+TOPUP_TTL,updatedAt:now,ref:"cs_"+Math.random().toString(36).slice(2,10)};
+        topup={id:newId("t"),userId:currentUser.id,php:topupFlow.pkg,status:"pending",createdAt:now,expiresAt:now+TOPUP_TTL,updatedAt:now,ref:"cs_"+Math.random().toString(36).slice(2,10)};
         topups.push(topup);
     }
     topupFlow={view:"checkout",topup,message};
@@ -960,19 +591,35 @@ function createTopup(amount){
 
 byId("topupBody").onclick=event=>{
     const button=event.target.closest("button");
-    if(!button) return;
-    if(button.dataset.pkg) return createTopup(Number(button.dataset.pkg));
+    if(!button){
+        return;
+    }
+    if(button.dataset.pkg){
+        topupFlow.pkg=Number(button.dataset.pkg);
+        renderTopup();
+        return;
+    }
+    const action=button.dataset.tp;
     const topup=topupFlow.topup;
-    if(button.dataset.tp==="pay"){
+    if(action==="captcha"){
+        topupFlow.human=true;
+    }
+    if(action==="proceed"){
+        createTopup();
+        return;
+    }
+    if(action==="pay"){
         webhook(topup.id);
         topupFlow={view:"done",topup,message:`Payment confirmed. ${fmtGold(topup.php)} credited.`};
         refreshChrome();
     }
-    if(button.dataset.tp==="replay"){
+    if(action==="replay"){
         const result=webhook(topup.id);
         topupFlow.message=result==="duplicate"?"Duplicate webhook acknowledged. No changes made.":"Credited.";
     }
-    if(button.dataset.tp==="again") topupFlow={view:"packages",topup:null,message:""};
+    if(action==="again"){
+        topupFlow=freshTopup();
+    }
     renderTopup();
 };
 
@@ -1000,7 +647,9 @@ function renderDashboard(){
 
 byId("dashBody").onclick=event=>{
     const button=event.target.closest("button");
-    if(!button||!button.dataset.tab) return;
+    if(!button||!button.dataset.tab){
+        return;
+    }
     dashTab=button.dataset.tab;
     renderDashboard();
 };
@@ -1078,18 +727,24 @@ function adminTableHtml(){
 
 function syncBulk(){
     const button=byId("bulkBtn");
-    if(!button) return;
+    if(!button){
+        return;
+    }
     button.textContent="Remove selected ("+adminSelected.size+")";
     button.disabled=adminSelected.size===0;
     const selectAll=byId("selAll");
-    if(!selectAll) return;
+    if(!selectAll){
+        return;
+    }
     const shown=shownBuildings();
     selectAll.checked=shown.length>0&&shown.every(entity=>adminSelected.has(entity.info.id));
 }
 
 function renderAdminTable(){
     byId("adminTable").innerHTML=adminTableHtml();
-    if(adminTab==="buildings") syncBulk();
+    if(adminTab==="buildings"){
+        syncBulk();
+    }
 }
 
 function renderAdmin(){
@@ -1116,14 +771,18 @@ function renderAdmin(){
 
 byId("adminTabs").onclick=event=>{
     const button=event.target.closest("button");
-    if(!button||!button.dataset.atab) return;
+    if(!button||!button.dataset.atab){
+        return;
+    }
     adminTab=button.dataset.atab;
     renderAdmin();
 };
 
 byId("adminBody").addEventListener("input",event=>{
     const filter=event.target.dataset.filter;
-    if(!filter) return;
+    if(!filter){
+        return;
+    }
     adminFilters[filter]=event.target.value;
     renderAdminTable();
 });
@@ -1154,7 +813,9 @@ byId("adminBody").addEventListener("change",event=>{
 
 byId("adminBody").addEventListener("click",event=>{
     const button=event.target.closest("button");
-    if(!button||!button.dataset.do) return;
+    if(!button||!button.dataset.do){
+        return;
+    }
     const action=button.dataset.do;
     if(action==="rmb"){
         const entity=entities.find(item=>String(item.info.id)===button.dataset.bid);
@@ -1163,7 +824,9 @@ byId("adminBody").addEventListener("click",event=>{
     }
     if(action==="rmsel"){
         const targets=entities.filter(entity=>adminSelected.has(entity.info.id));
-        if(!targets.length) return;
+        if(!targets.length){
+            return;
+        }
         askRemove(targets,"Remove "+targets.length+" building(s)");
         return;
     }
@@ -1172,7 +835,9 @@ byId("adminBody").addEventListener("click",event=>{
         const owned=entities.filter(entity=>entity.info.ownerId===user.id).length;
         askReason("Ban "+user.username+" ("+owned+" buildings)",{ban:true},(reason,amount,flags)=>adminBan(user.id,reason,flags));
     }
-    if(action==="credit") askReason("Credit gold to "+user.username,{amount:true},(reason,amount)=>adminCredit(user.id,amount,reason));
+    if(action==="credit"){
+        askReason("Credit gold to "+user.username,{amount:true},(reason,amount)=>adminCredit(user.id,amount,reason));
+    }
     if(action==="unban"){
         const error=adminUnban(user.id);
         toast(error||"Unbanned "+user.username);
@@ -1180,17 +845,22 @@ byId("adminBody").addEventListener("click",event=>{
     }
 });
 
-const navActions={dashboard:openDashboard,topup:openTopup,leaderboard:openLeaderboard,admin:openAdmin,signout:handleSignOut};
+const navActions={dashboard:openDashboard,topup:openTopup,leaderboard:openLeaderboard,admin:openAdmin,signout:()=>toggleModal(byId("signoutModal"),true)};
 
 document.addEventListener("click",event=>{
     const closer=event.target.closest("[data-close]");
-    if(closer) toggleModal(byId(closer.dataset.close),false);
+    if(closer){
+        toggleModal(byId(closer.dataset.close),false);
+    }
     const nav=event.target.closest("[data-act]");
-    if(nav) navActions[nav.dataset.act]();
+    if(nav){
+        navActions[nav.dataset.act]();
+    }
 });
 
 byId("signInBtn").onclick=openAuth;
 byId("authSubmit").onclick=submitAuth;
+byId("signoutConfirm").onclick=handleSignOut;
 
 byId("selectBtn").onclick=()=>{
     selectMode=!selectMode;
@@ -1206,9 +876,25 @@ byId("pickClear").onclick=()=>{
 };
 
 byId("pickRemove").onclick=()=>{
-    if(!picked.size) return;
+    if(!picked.size){
+        return;
+    }
     askRemove([...picked],"Remove "+picked.size+" building(s)");
 };
+
+function loadTexture(src){
+    return new Promise(resolve=>{
+        if(!src){
+            resolve(PIXI.Texture.WHITE);
+            return;
+        }
+        const image=new Image();
+        image.crossOrigin="anonymous";
+        image.onload=()=>resolve(PIXI.Texture.from(image));
+        image.onerror=()=>resolve(PIXI.Texture.WHITE);
+        image.src=src;
+    });
+}
 
 async function main(){
     const app=new PIXI.Application();
@@ -1223,48 +909,75 @@ async function main(){
     world.y=window.innerHeight/2-(GRID*CELL)/2;
 
     const grid=new PIXI.Graphics();
-    for(let i=0;i<=GRID;i++){
-        grid.moveTo(i*CELL,0).lineTo(i*CELL,GRID*CELL).moveTo(0,i*CELL).lineTo(GRID*CELL,i*CELL);
+    for(let line=0;line<=GRID;line++){
+        grid.moveTo(line*CELL,0).lineTo(line*CELL,GRID*CELL).moveTo(0,line*CELL).lineTo(GRID*CELL,line*CELL);
     }
     grid.stroke({width:1,color:0xe5e7eb,pixelLine:true});
     world.addChild(grid);
 
     const roadGraphics=new PIXI.Graphics(), entityLayer=new PIXI.Container(), roamerLayer=new PIXI.Container();
-    world.addChild(roadGraphics, entityLayer, roamerLayer);
+    world.addChild(roadGraphics,entityLayer,roamerLayer);
 
+    const hover=new PIXI.Graphics().rect(0,0,CELL,CELL).fill({color:0x111827,alpha:0.08});
+    hover.visible=false;
     const pickLayer=new PIXI.Graphics();
-    world.addChild(pickLayer);
-
     const highlight=new PIXI.Graphics().rect(0,0,CELL,CELL).stroke({width:2,color:0x111827});
     highlight.visible=false;
-    world.addChild(highlight);
+    world.addChild(hover,pickLayer,highlight);
+
+    const label=new PIXI.Container();
+    const labelBg=new PIXI.Graphics();
+    const labelText=new PIXI.Text({text:"",style:{fontSize:12,fontWeight:"600",fill:0xffffff,fontFamily:"Inter, Arial, sans-serif"},resolution:2});
+    labelText.anchor.set(0.5);
+    label.addChild(labelBg,labelText);
+    label.visible=false;
+    world.addChild(label);
+
+    function showLabel(entity){
+        labelText.text=entity.info.name;
+        const width=labelText.width+LABEL_PAD*2;
+        const height=labelText.height+LABEL_PAD;
+        labelBg.clear().roundRect(-width/2,-height/2,width,height,4).fill({color:0x111827,alpha:0.9});
+        label.x=entity.x*CELL+CELL/2;
+        label.y=entity.y*CELL+CELL/2-SPRITE_SIZE/2-height/2-BOB_AMP-4;
+        label.visible=true;
+    }
 
     actions.drawPicks=()=>{
         pickLayer.clear();
-        if(!picked.size) return;
+        if(!picked.size){
+            return;
+        }
         picked.forEach(entity=>pickLayer.rect(entity.x*CELL+2,entity.y*CELL+2,CELL-4,CELL-4));
         pickLayer.fill({color:0x2563eb,alpha:0.25});
         pickLayer.stroke({width:2,color:0x2563eb});
     };
 
-    const textures=BUILDINGS.map(b=>{
-        const g=new PIXI.Graphics();
-        drawShape(g,b.shape);
-        g.fill(b.color);
-        return app.renderer.generateTexture({target:g,frame:new PIXI.Rectangle(0,0,CELL,CELL),resolution:2});
-    });
+    const textures=await Promise.all(BUILDINGS.map(building=>loadTexture(building.src)));
+    const roamerTextures=await Promise.all(ROAMER_SRCS.map(loadTexture));
 
-    function placeEntity(x,y,t,info){
-        const k=cellKey(x,y);
-        if(entityMap.has(k)) return;
-        const sprite=new PIXI.Sprite(textures[t]);
-        sprite.x=x*CELL; sprite.y=y*CELL;
+    function placeEntity(x,y,type,info){
+        const key=cellKey(x,y);
+        if(entityMap.has(key)){
+            return;
+        }
+        const texture=textures[type];
+        const sprite=new PIXI.Sprite(texture);
+        sprite.anchor.set(0.5);
+        sprite.scale.set(SPRITE_SIZE/Math.max(texture.width,texture.height));
+        sprite.tint=texture===PIXI.Texture.WHITE?FALLBACK_TINT:0xffffff;
+        sprite.x=x*CELL+CELL/2;
+        sprite.y=y*CELL+CELL/2;
         entityLayer.addChild(sprite);
-        const entity={x,y,type:t,sprite,info,roamer:null};
+        const entity={x,y,type,sprite,info,roamer:null,baseY:sprite.y,phase:Math.random()*Math.PI*2,speed:BOB_SPEED_MIN+Math.random()*(BOB_SPEED_MAX-BOB_SPEED_MIN)};
         entities.push(entity);
-        entityMap.set(k,entity);
-        if(t===ROAD_TYPE) refreshRoads();
-        if(t===ROAM_TYPE) entity.roamer=spawnRoamer(entity);
+        entityMap.set(key,entity);
+        if(ROAD_TYPES.includes(type)){
+            refreshRoads();
+        }
+        if(type===ROAM_TYPE){
+            entity.roamer=spawnRoamer(entity);
+        }
     }
 
     actions.removeEntity=entity=>{
@@ -1278,20 +991,29 @@ async function main(){
             entity.roamer.sprite.destroy();
             roamers.splice(roamers.indexOf(entity.roamer),1);
         }
-        if(entity.type===ROAD_TYPE) refreshRoads();
+        if(ROAD_TYPES.includes(entity.type)){
+            refreshRoads();
+        }
     };
 
-    function findNearestSame(e){
-        let nearest=null, minD=Infinity;
-        for(let dy=-ROAD_RADIUS;dy<=ROAD_RADIUS;dy++){
-            for(let dx=-ROAD_RADIUS;dx<=ROAD_RADIUS;dx++){
-                if(!dx&&!dy) continue;
-                const nx=e.x+dx, ny=e.y+dy;
-                if(nx<0||ny<0||nx>=GRID||ny>=GRID) continue;
-                const n=entityMap.get(cellKey(nx,ny));
-                if(n&&n.type===e.type){
-                    const d=dx*dx+dy*dy;
-                    if(d<minD){minD=d; nearest=n;}
+    function findNearestSame(entity){
+        let nearest=null, minDistance=Infinity;
+        for(let deltaY=-ROAD_RADIUS;deltaY<=ROAD_RADIUS;deltaY++){
+            for(let deltaX=-ROAD_RADIUS;deltaX<=ROAD_RADIUS;deltaX++){
+                if(!deltaX&&!deltaY){
+                    continue;
+                }
+                const nextX=entity.x+deltaX, nextY=entity.y+deltaY;
+                if(nextX<0||nextY<0||nextX>=GRID||nextY>=GRID){
+                    continue;
+                }
+                const neighbor=entityMap.get(cellKey(nextX,nextY));
+                if(neighbor&&ROAD_TYPES.includes(neighbor.type)){
+                    const distance=deltaX*deltaX+deltaY*deltaY;
+                    if(distance<minDistance){
+                        minDistance=distance;
+                        nearest=neighbor;
+                    }
                 }
             }
         }
@@ -1301,79 +1023,124 @@ async function main(){
     function refreshRoads(){
         roadGraphics.clear();
         const drawn=new Set();
-        entities.forEach(e=>{
-            if(e.type!==ROAD_TYPE) return;
-            const t=findNearestSame(e);
-            if(!t) return;
-            const kA=cellKey(e.x,e.y), kB=cellKey(t.x,t.y), pk=Math.min(kA,kB)+"-"+Math.max(kA,kB);
-            if(drawn.has(pk)) return;
-            drawn.add(pk);
-            roadGraphics.moveTo(e.x*CELL+CELL/2,e.y*CELL+CELL/2).lineTo(t.x*CELL+CELL/2,t.y*CELL+CELL/2);
+        entities.forEach(entity=>{
+            if(!ROAD_TYPES.includes(entity.type)){
+                return;
+            }
+            const target=findNearestSame(entity);
+            if(!target){
+                return;
+            }
+            const keyA=cellKey(entity.x,entity.y), keyB=cellKey(target.x,target.y), pairKey=Math.min(keyA,keyB)+"-"+Math.max(keyA,keyB);
+            if(drawn.has(pairKey)){
+                return;
+            }
+            drawn.add(pairKey);
+            roadGraphics.moveTo(entity.x*CELL+CELL/2,entity.y*CELL+CELL/2).lineTo(target.x*CELL+CELL/2,target.y*CELL+CELL/2);
         });
         roadGraphics.stroke({width:ROAD_WIDTH,color:ROAD_COLOR});
     }
 
     const randomPause=()=>ROAM_PAUSE_MIN+Math.random()*(ROAM_PAUSE_MAX-ROAM_PAUSE_MIN);
-    const pickTarget=r=>{
-        const a=Math.random()*Math.PI*2, d=Math.random()*ROAM_RADIUS;
-        r.targetX=r.homeX+Math.cos(a)*d; r.targetY=r.homeY+Math.sin(a)*d;
+    const pickTarget=roamer=>{
+        const angle=Math.random()*Math.PI*2, distance=Math.random()*ROAM_RADIUS;
+        roamer.targetX=roamer.homeX+Math.cos(angle)*distance;
+        roamer.targetY=roamer.homeY+Math.sin(angle)*distance;
     };
 
-    function spawnRoamer(e){
-        const dot=new PIXI.Graphics().circle(0,0,4).fill(0x111827);
-        dot.x=e.x*CELL+CELL/2; dot.y=e.y*CELL+CELL/2;
+    function spawnRoamer(entity){
+        const roamerTexture=roamerTextures[Math.floor(Math.random()*roamerTextures.length)];
+        const dot=new PIXI.Sprite(roamerTexture);
+        dot.anchor.set(0.5);
+        dot.scale.set(ROAMER_SIZE/Math.max(roamerTexture.width,roamerTexture.height));
+        dot.tint=roamerTexture===PIXI.Texture.WHITE?0x111827:0xffffff;
+        dot.x=entity.x*CELL+CELL/2;
+        dot.y=entity.y*CELL+CELL/2;
+        
         roamerLayer.addChild(dot);
-        const r={sprite:dot,homeX:dot.x,homeY:dot.y,targetX:dot.x,targetY:dot.y,wait:randomPause()};
-        pickTarget(r); roamers.push(r);
-        return r;
+        const roamer={sprite:dot,homeX:dot.x,homeY:dot.y,targetX:dot.x,targetY:dot.y,wait:randomPause()};
+        pickTarget(roamer);
+        roamers.push(roamer);
+        return roamer;
     }
 
-    app.ticker.add(t=>{
-        const sec=t.deltaMS/1000;
-        roamers.forEach(r=>{
-            if(r.wait>0){r.wait-=sec; return;}
-            const dx=r.targetX-r.sprite.x, dy=r.targetY-r.sprite.y, dist=Math.hypot(dx,dy), step=ROAM_SPEED*sec;
-            if(dist<=step){
-                r.sprite.x=r.targetX; r.sprite.y=r.targetY;
-                r.wait=randomPause(); pickTarget(r); return;
+    let clock=0;
+    app.ticker.add(ticker=>{
+        const seconds=ticker.deltaMS/1000;
+        clock+=seconds;
+        entities.forEach(entity=>{
+            entity.sprite.y=entity.baseY+Math.sin(clock*entity.speed+entity.phase)*BOB_AMP;
+        });
+        roamers.forEach(roamer=>{
+            if(roamer.wait>0){
+                roamer.wait-=seconds;
+                return;
             }
-            r.sprite.x+=(dx/dist)*step; r.sprite.y+=(dy/dist)*step;
+            const deltaX=roamer.targetX-roamer.sprite.x, deltaY=roamer.targetY-roamer.sprite.y, distance=Math.hypot(deltaX,deltaY), step=ROAM_SPEED*seconds;
+            if(distance<=step){
+                roamer.sprite.x=roamer.targetX;
+                roamer.sprite.y=roamer.targetY;
+                roamer.wait=randomPause();
+                pickTarget(roamer);
+                return;
+            }
+            roamer.sprite.x+=(deltaX/distance)*step;
+            roamer.sprite.y+=(deltaY/distance)*step;
         });
     });
 
-    for(let y=CENTER_START;y<CENTER_END;y++){
-        for(let x=CENTER_START;x<CENTER_END;x++){
-            const t=Math.floor(Math.random()*BUILDINGS.length);
-            const owner=seedUsers[Math.floor(Math.random()*seedUsers.length)];
-            placeEntity(x,y,t,createInfo(t,BUILDINGS[t].name+" "+(buildingCounter+1),owner.id));
+    for(let cellY=CENTER_START;cellY<CENTER_END;cellY++){
+            const centerCell=(CENTER_START+CENTER_END)/2;
+    let attempts=0;
+    while(entities.length<SCATTER_COUNT&&attempts<SCATTER_COUNT*10){
+        attempts++;
+        const angle=Math.random()*Math.PI*2;
+        const radius=Math.random()*SCATTER_RADIUS;
+        const cellX=Math.round(centerCell+Math.cos(angle)*radius);
+        const cellY=Math.round(centerCell+Math.sin(angle)*radius);
+        if(entityMap.has(cellKey(cellX,cellY))){
+            continue;
         }
+        const type=Math.floor(Math.random()*BUILDINGS.length);
+        const owner=seedUsers[Math.floor(Math.random()*seedUsers.length)];
+        placeEntity(cellX,cellY,type,createInfo(type,BUILDINGS[type].name+" "+(buildingCounter+1),owner.id));
+    }
     }
 
     const menu=byId("menu"), infoPanel=byId("info"), modal=byId("modal");
     const summary=byId("summary"), nameInput=byId("nameInput"), confirmError=byId("confirmError");
 
     function showInfo(entity){
-        const b=BUILDINGS[entity.type];
+        const building=BUILDINGS[entity.type];
         const removeButton=isAdmin()?`<br><button id="removeBtn">Remove (admin)</button>`:"";
-        infoPanel.innerHTML=`<b>${esc(entity.info.name)}</b><br>Type: ${b.name}<br>Placed by: ${esc(nameOf(entity.info.ownerId))}<br>Date: ${fmtDate(entity.info.at)}<br>Cost: ${fmtGold(entity.info.cost)}<br>Cell: ${entity.x}, ${entity.y}${removeButton}`;
+        infoPanel.innerHTML=`<b>${esc(entity.info.name)}</b><br>Type: ${building.name}<br>Placed by: ${esc(nameOf(entity.info.ownerId))}<br>Date: ${fmtDate(entity.info.at)}<br>Cost: ${fmtGold(entity.info.cost)}<br>Cell: ${entity.x}, ${entity.y}${removeButton}`;
         infoPanel.style.display="block";
-        if(!isAdmin()) return;
+        showLabel(entity);
+        if(!isAdmin()){
+            return;
+        }
         byId("removeBtn").onclick=()=>askRemove([entity],"Remove "+entity.info.name);
     }
 
-    function openConfirm(t){
-        const b=BUILDINGS[t]; pendingType=t;
+    function openConfirm(type){
+        const building=BUILDINGS[type];
+        pendingType=type;
         confirmError.textContent="";
-        summary.innerHTML=`Type: ${b.name}<br>Placed by: ${esc(currentUser.username)}<br>Cost: ${fmtGold(b.cost)}<br>Balance: ${fmtGold(currentUser.gold)}<br>Cell: ${selectedCell.x}, ${selectedCell.y}`;
-        nameInput.value=`${b.name} ${buildingCounter+1}`;
-        toggleModal(modal, true);
+        summary.innerHTML=`Type: ${building.name}<br>Placed by: ${esc(currentUser.username)}<br>Cost: ${fmtGold(building.cost)}<br>Balance: ${fmtGold(currentUser.gold)}<br>Cell: ${selectedCell.x}, ${selectedCell.y}`;
+        nameInput.value=`${building.name} ${buildingCounter+1}`;
+        toggleModal(modal,true);
     }
 
-    const closeConfirm=()=>{pendingType=null; toggleModal(modal, false);};
+    const closeConfirm=()=>{
+        pendingType=null;
+        toggleModal(modal,false);
+    };
     byId("cancel").onclick=closeConfirm;
 
     byId("confirm").onclick=()=>{
-        if(!selectedCell||pendingType===null) return;
+        if(!selectedCell||pendingType===null){
+            return;
+        }
         if(isBanned()){
             confirmError.textContent="Banned accounts cannot place buildings.";
             return;
@@ -1392,31 +1159,44 @@ async function main(){
         currentUser.gold-=building.cost;
         placeEntity(selectedCell.x,selectedCell.y,pendingType,info);
         logEvent("building_placed",currentUser.id,currentUser.id,-building.cost,null,{building_id:info.id,building_type:building.name,x:selectedCell.x,y:selectedCell.y});
-        closeConfirm(); clearSelection(); refreshChrome();
+        closeConfirm();
+        clearSelection();
+        refreshChrome();
         toast("Placed "+finalName);
     };
 
-    BUILDINGS.forEach((b,i)=>{
-        const btn=document.createElement("button");
-        btn.textContent=`${b.name} (${b.cost} g)`;
-        btn.style.borderBottom=`3px solid #${b.color.toString(16).padStart(6,"0")}`;
-        btn.onclick=()=>selectedCell&&openConfirm(i);
-        menu.appendChild(btn);
+    BUILDINGS.forEach((building,index)=>{
+        const button=document.createElement("button");
+        button.innerHTML=`<img src="${esc(building.src)}" alt="" onerror="this.style.display='none'"><span>${building.name} (${building.cost} g)</span>`;
+        button.onclick=()=>selectedCell&&openConfirm(index);
+        menu.appendChild(button);
     });
 
     clearSelection=function(){
-        selectedCell=null; highlight.visible=false;
-        menu.style.display="none"; infoPanel.style.display="none";
+        selectedCell=null;
+        highlight.visible=false;
+        label.visible=false;
+        menu.style.display="none";
+        infoPanel.style.display="none";
     };
 
-    function handleClick(sx,sy,multi){
-        const wx=(sx-world.x)/world.scale.x, wy=(sy-world.y)/world.scale.y;
-        const cx=Math.floor(wx/CELL), cy=Math.floor(wy/CELL);
-        const inBounds=cx>=0&&cy>=0&&cx<GRID&&cy<GRID;
+    function cellAt(screenX,screenY){
+        const cellX=Math.floor((screenX-world.x)/world.scale.x/CELL);
+        const cellY=Math.floor((screenY-world.y)/world.scale.y/CELL);
+        const inBounds=cellX>=0&&cellY>=0&&cellX<GRID&&cellY<GRID;
+        return {cellX,cellY,inBounds};
+    }
+
+    function handleClick(screenX,screenY,multi){
+        const {cellX,cellY,inBounds}=cellAt(screenX,screenY);
         if(isAdmin()&&(selectMode||multi)){
-            if(!inBounds) return;
-            const target=entityMap.get(cellKey(cx,cy));
-            if(!target) return;
+            if(!inBounds){
+                return;
+            }
+            const target=entityMap.get(cellKey(cellX,cellY));
+            if(!target){
+                return;
+            }
             if(picked.has(target)){
                 picked.delete(target);
             }else{
@@ -1428,83 +1208,120 @@ async function main(){
             return;
         }
         clearSelection();
-        if(!inBounds) return;
-        selectedCell={x:cx,y:cy};
-        highlight.x=cx*CELL; highlight.y=cy*CELL; highlight.visible=true;
-        const existing=entityMap.get(cellKey(cx,cy));
-        if(existing) return showInfo(existing);
-        if(currentUser) menu.style.display="flex";
+        if(!inBounds){
+            return;
+        }
+        selectedCell={x:cellX,y:cellY};
+        highlight.x=cellX*CELL;
+        highlight.y=cellY*CELL;
+        highlight.visible=true;
+        const existing=entityMap.get(cellKey(cellX,cellY));
+        if(existing){
+            showInfo(existing);
+            return;
+        }
+        if(currentUser){
+            menu.style.display="flex";
+        }
     }
 
-    let activePointers=new Map(), isMultiTouch=false, initialPinchDist=0, initialScale=1;
+    const activePointers=new Map();
+    let isMultiTouch=false, initialPinchDist=0, initialScale=1;
     let dragStartX=0, dragStartY=0, worldStartX=0, worldStartY=0, hasMoved=false;
 
-    app.canvas.addEventListener("pointerdown", e=>{
-        activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    app.canvas.addEventListener("pointerdown",event=>{
+        activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
         if(activePointers.size===1){
-            isMultiTouch=false; hasMoved=false;
-            dragStartX=e.clientX; dragStartY=e.clientY;
-            worldStartX=world.x; worldStartY=world.y;
+            isMultiTouch=false;
+            hasMoved=false;
+            dragStartX=event.clientX;
+            dragStartY=event.clientY;
+            worldStartX=world.x;
+            worldStartY=world.y;
         }else if(activePointers.size===2){
-            isMultiTouch=true; hasMoved=true;
-            const p=[...activePointers.values()];
-            initialPinchDist=Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+            isMultiTouch=true;
+            hasMoved=true;
+            const points=[...activePointers.values()];
+            initialPinchDist=Math.hypot(points[0].x-points[1].x,points[0].y-points[1].y);
             initialScale=world.scale.x;
         }
     });
 
-    window.addEventListener("pointermove", e=>{
-        if(!activePointers.has(e.pointerId)) return;
-        activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    app.canvas.addEventListener("pointermove",event=>{
+        if(event.pointerType!=="mouse"||activePointers.size>0){
+            hover.visible=false;
+            return;
+        }
+        const {cellX,cellY,inBounds}=cellAt(event.clientX,event.clientY);
+        hover.visible=inBounds;
+        hover.x=cellX*CELL;
+        hover.y=cellY*CELL;
+    });
 
-        if(activePointers.size===1 && !isMultiTouch){
-            const dx=e.clientX-dragStartX, dy=e.clientY-dragStartY;
-            if(Math.hypot(dx, dy)>DRAG_THRESHOLD) hasMoved=true;
+    app.canvas.addEventListener("pointerleave",()=>{
+        hover.visible=false;
+    });
+
+    window.addEventListener("pointermove",event=>{
+        if(!activePointers.has(event.pointerId)){
+            return;
+        }
+        activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+
+        if(activePointers.size===1&&!isMultiTouch){
+            const deltaX=event.clientX-dragStartX, deltaY=event.clientY-dragStartY;
+            if(Math.hypot(deltaX,deltaY)>DRAG_THRESHOLD){
+                hasMoved=true;
+            }
             if(hasMoved){
-                world.x=worldStartX+dx;
-                world.y=worldStartY+dy;
+                world.x=worldStartX+deltaX;
+                world.y=worldStartY+deltaY;
             }
         }else if(activePointers.size===2){
-            const p=[...activePointers.values()];
-            const dist=Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+            const points=[...activePointers.values()];
+            const distance=Math.hypot(points[0].x-points[1].x,points[0].y-points[1].y);
             if(initialPinchDist>0){
-                const factor=dist/initialPinchDist;
-                const nextScale=Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, initialScale*factor));
-                const midX=(p[0].x+p[1].x)/2, midY=(p[0].y+p[1].y)/2;
-                const wx=(midX-world.x)/world.scale.x, wy=(midY-world.y)/world.scale.y;
+                const factor=distance/initialPinchDist;
+                const nextScale=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,initialScale*factor));
+                const midX=(points[0].x+points[1].x)/2, midY=(points[0].y+points[1].y)/2;
+                const worldX=(midX-world.x)/world.scale.x, worldY=(midY-world.y)/world.scale.y;
                 world.scale.set(nextScale);
-                world.x=midX-wx*nextScale;
-                world.y=midY-wy*nextScale;
+                world.x=midX-worldX*nextScale;
+                world.y=midY-worldY*nextScale;
             }
         }
     });
 
-    const handlePointerUp=(e)=>{
-        if(activePointers.has(e.pointerId)){
-            activePointers.delete(e.pointerId);
-            if(activePointers.size===0){
-                if(!hasMoved && !isMultiTouch){
-                    handleClick(e.clientX, e.clientY, e.shiftKey||e.ctrlKey);
-                }
-                isMultiTouch=false;
-            }else if(activePointers.size===1){
-                const p=[...activePointers.values()][0];
-                dragStartX=p.x; dragStartY=p.y;
-                worldStartX=world.x; worldStartY=world.y;
+    const handlePointerUp=event=>{
+        if(!activePointers.has(event.pointerId)){
+            return;
+        }
+        activePointers.delete(event.pointerId);
+        if(activePointers.size===0){
+            if(!hasMoved&&!isMultiTouch){
+                handleClick(event.clientX,event.clientY,event.shiftKey||event.ctrlKey);
             }
+            isMultiTouch=false;
+        }else if(activePointers.size===1){
+            const point=[...activePointers.values()][0];
+            dragStartX=point.x;
+            dragStartY=point.y;
+            worldStartX=world.x;
+            worldStartY=world.y;
         }
     };
 
-    window.addEventListener("pointerup", handlePointerUp);
-    window.addEventListener("pointercancel", handlePointerUp);
+    window.addEventListener("pointerup",handlePointerUp);
+    window.addEventListener("pointercancel",handlePointerUp);
 
-    app.canvas.addEventListener("wheel", e=>{
-        e.preventDefault();
-        const factor=e.deltaY<0?1.1:1/1.1;
+    app.canvas.addEventListener("wheel",event=>{
+        event.preventDefault();
+        const factor=event.deltaY<0?1.1:1/1.1;
         const nextScale=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,world.scale.x*factor));
-        const wx=(e.clientX-world.x)/world.scale.x, wy=(e.clientY-world.y)/world.scale.y;
+        const worldX=(event.clientX-world.x)/world.scale.x, worldY=(event.clientY-world.y)/world.scale.y;
         world.scale.set(nextScale);
-        world.x=e.clientX-wx*nextScale; world.y=e.clientY-wy*nextScale;
+        world.x=event.clientX-worldX*nextScale;
+        world.y=event.clientY-worldY*nextScale;
     },{passive:false});
 }
 
